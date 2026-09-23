@@ -3,79 +3,126 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Проверка баланса ключа</title>
+<title>TokenWave // balance</title>
 <style>
-  :root { --bg:#0b1120; --panel:#111a2e; --line:#1f2c47; --txt:#e6edf7;
-          --muted:#8ea0bd; --accent:#38bdf8; --ok:#34d399; --bad:#f87171; }
+  :root { --bg:#04070a; --panel:#0a120d; --line:#0f2a1a; --txt:#c9f5d8;
+          --dim:#5c7a68; --grn:#00ff88; --grn-dim:#0a5c36; --red:#ff5470; }
   * { box-sizing:border-box; }
-  body { margin:0; background:var(--bg); color:var(--txt);
-         font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif; line-height:1.5; }
-  .wrap { max-width:460px; margin:0 auto; padding:8vh 20px 40px; }
-  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; }
-  h1 { font-size:22px; margin:0 0 6px; }
-  .muted { color:var(--muted); font-size:14px; }
-  input { width:100%; padding:12px 14px; border-radius:10px; margin-top:12px;
-          border:1px solid var(--line); background:#16213a; color:var(--txt); font:inherit; }
-  button { width:100%; margin-top:12px; padding:12px; border-radius:10px; border:0; cursor:pointer;
-           background:linear-gradient(135deg,var(--accent),#22d3ee); color:#04121f;
-           font:inherit; font-weight:700; }
-  .alert { background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.4);
-           color:var(--bad); padding:10px 14px; border-radius:10px; margin-top:12px; font-size:14px; }
-  .grid { display:grid; gap:12px; grid-template-columns:1fr 1fr; margin-top:14px; }
-  .stat { background:#16213a; border:1px solid var(--line); border-radius:12px; padding:14px; }
-  .stat .label { color:var(--muted); font-size:13px; }
-  .stat .value { font-size:22px; font-weight:700; }
-  code { font-family:ui-monospace,Consolas,monospace; font-size:13px; }
-  .pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600;
-          background:rgba(52,211,153,.15); color:var(--ok); }
+  body { margin:0; background:radial-gradient(1000px 500px at 50% -10%, #07130c, var(--bg));
+         color:var(--txt); font-family:ui-monospace,Consolas,"Cascadia Code",monospace; }
+  .wrap { max-width:480px; margin:0 auto; padding:6vh 18px 40px; }
+  .term { background:var(--panel); border:1px solid var(--line); border-radius:12px;
+          padding:20px; box-shadow:0 0 40px rgba(0,255,136,.07); }
+  .prompt { color:var(--grn); }
+  h1 { font-size:18px; margin:0 0 4px; color:var(--grn); text-shadow:0 0 12px rgba(0,255,136,.5); }
+  .sub { color:var(--dim); font-size:13px; }
+  input { width:100%; margin-top:14px; padding:12px; border-radius:8px;
+          border:1px solid var(--line); background:#030805; color:var(--grn);
+          font:inherit; outline:none; }
+  input:focus { border-color:var(--grn); box-shadow:0 0 0 1px var(--grn); }
+  button { width:100%; margin-top:12px; padding:12px; border-radius:8px; border:0; cursor:pointer;
+           background:var(--grn); color:#02120a; font:inherit; font-weight:700; }
+  button:hover { filter:brightness(1.1); }
+  .ghost { background:transparent; border:1px solid var(--line); color:var(--dim);
+           font-size:12px; padding:6px 10px; width:auto; margin-top:10px; }
+  .err { color:var(--red); font-size:13px; margin-top:10px; }
+  .res { margin-top:16px; border-top:1px dashed var(--line); padding-top:16px; display:none; }
+  .donut-wrap { display:flex; gap:16px; align-items:center; }
+  .nums .v { font-size:22px; color:var(--grn); font-weight:700; }
+  .nums .l { font-size:12px; color:var(--dim); }
+  .meta { font-size:12px; color:var(--dim); margin-top:10px; }
+  .hist { margin-top:18px; font-size:13px; }
+  .hist .row { display:flex; justify-content:space-between; padding:6px 0;
+               border-bottom:1px dotted var(--line); }
+  .hist code { color:var(--grn); }
+  .blink { animation:bl 1s steps(1) infinite; }
+  @keyframes bl { 50% { opacity:0; } }
 </style>
 </head>
 <body>
 <div class="wrap">
-  <div class="card">
-    <h1>🔑 Проверка баланса</h1>
-    <p class="muted">Вставь свой ключ <code>dahl_...</code> — покажем остаток и потраченное.</p>
-    <input id="key" type="text" placeholder="dahl_..." autocomplete="off">
-    <button id="go">Проверить</button>
+  <div class="term">
+    <h1><span class="prompt">root@tokenwave:~$</span> balance --check<span class="blink">_</span></h1>
+    <div class="sub">// вставь ключ dahl_... — покажем остаток, расход и диаграмму</div>
+    <input id="key" type="text" placeholder="dahl_..." autocomplete="off" spellcheck="false">
+    <button id="go">[ выполнить проверку ]</button>
     <div id="err"></div>
-    <div id="res" style="display:none">
-      <p><code id="m"></code> <span class="pill" id="s"></span></p>
-      <div class="grid">
-        <div class="stat"><div class="label">Осталось</div><div class="value" id="a"></div></div>
-        <div class="stat"><div class="label">Потрачено</div><div class="value" id="p"></div></div>
+    <div id="res" class="res">
+      <div class="donut-wrap">
+        <svg width="120" height="120" viewBox="0 0 120 120">
+          <circle cx="60" cy="60" r="48" fill="none" stroke="#0f2a1a" stroke-width="12"/>
+          <circle id="arc" cx="60" cy="60" r="48" fill="none" stroke="#00ff88" stroke-width="12"
+                  stroke-linecap="round" transform="rotate(-90 60 60)"
+                  stroke-dasharray="0 301.6" style="filter:drop-shadow(0 0 6px rgba(0,255,136,.7))"/>
+          <text id="pct" x="60" y="66" text-anchor="middle" fill="#00ff88" font-size="18" font-weight="bold">–</text>
+        </svg>
+        <div class="nums">
+          <div class="l">осталось</div><div class="v" id="a">–</div>
+          <div class="l">потрачено</div><div class="v" id="p" style="color:var(--txt)">–</div>
+        </div>
       </div>
-      <p class="muted" id="t"></p>
+      <div class="meta" id="meta"></div>
     </div>
+    <div class="hist" id="hist"></div>
   </div>
 </div>
 <script>
-// Адрес сервера: ?api=https://... в ссылке, иначе последний использованный, иначе дефолт.
-const qs = new URLSearchParams(location.search);
-let API_BASE = (qs.get("api") || "").replace(/\/+$/, "");
+let API_BASE = (new URLSearchParams(location.search).get("api") || "").replace(/\/+$/, "");
 if (API_BASE) { try { localStorage.setItem("tw_api", API_BASE); } catch (e) {} }
 if (!API_BASE) { try { API_BASE = localStorage.getItem("tw_api") || ""; } catch (e) {} }
 if (!API_BASE) { API_BASE = "https://desktop-s7bu0ef-1.tail46c54e.ts.net"; }
+
 const fmt = n => (n == null ? 0 : n).toLocaleString("ru-RU");
+const C = 2 * Math.PI * 48;
+
+function histRender() {
+  let h = [];
+  try { h = JSON.parse(localStorage.getItem("tw_hist") || "[]"); } catch (e) {}
+  const box = document.getElementById("hist");
+  if (!h.length) { box.innerHTML = ""; return; }
+  box.innerHTML = "<div class='sub'>// последние проверки</div>" + h.map(x =>
+    `<div class="row"><code>${x.m}</code><span>${fmt(x.a)} / ${x.t}</span></div>`
+  ).join("") + `<button class="ghost" id="clr">[ очистить ]</button>`;
+  document.getElementById("clr").onclick = () => {
+    try { localStorage.removeItem("tw_hist"); } catch (e) {}
+    histRender();
+  };
+}
+function histAdd(m, a) {
+  let h = [];
+  try { h = JSON.parse(localStorage.getItem("tw_hist") || "[]"); } catch (e) {}
+  h.unshift({ m, a, t: new Date().toLocaleString("ru-RU", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) });
+  try { localStorage.setItem("tw_hist", JSON.stringify(h.slice(0, 8))); } catch (e) {}
+  histRender();
+}
+
 document.getElementById("go").onclick = async () => {
   const key = document.getElementById("key").value.trim();
   const err = document.getElementById("err"), res = document.getElementById("res");
   err.innerHTML = ""; res.style.display = "none";
-  if (!key) { err.innerHTML = '<div class="alert">Вставь ключ.</div>'; return; }
+  if (!key) { err.innerHTML = '<div class="err">[!] вставь ключ.</div>'; return; }
+  err.innerHTML = '<div class="sub">[*] запрос к API...</div>';
   try {
     const r = await fetch(API_BASE + "/api/check?key=" + encodeURIComponent(key));
-    if (!r.ok) throw new Error(r.status === 404 ? "Такой ключ у нас не числится." : "Ошибка " + r.status);
+    if (!r.ok) throw new Error(r.status === 404 ? "ключ у нас не числится." : "HTTP " + r.status);
     const d = await r.json();
-    document.getElementById("m").textContent = d.masked || "";
-    document.getElementById("s").textContent = d.status || "active";
-    document.getElementById("a").textContent = fmt(d.available);
+    err.innerHTML = "";
+    const total = d.total || 0, avail = d.available || 0;
+    const leftPct = total > 0 ? Math.max(0, Math.min(100, avail / total * 100)) : 0;
+    document.getElementById("arc").setAttribute("stroke-dasharray", (C * leftPct / 100).toFixed(1) + " " + C.toFixed(1));
+    document.getElementById("pct").textContent = leftPct.toFixed(0) + "%";
+    document.getElementById("a").textContent = fmt(avail);
     document.getElementById("p").textContent = fmt(d.spent);
-    document.getElementById("t").textContent = "Выдано: " + fmt(d.total);
+    document.getElementById("meta").textContent =
+      (d.masked || "") + " | выдано: " + fmt(total) + " | " + (d.status || "active");
     res.style.display = "block";
+    histAdd(d.masked || (key.slice(0, 8) + "…" + key.slice(-4)), avail);
   } catch (e) {
-    err.innerHTML = '<div class="alert">Не получилось: ' + e.message + "</div>";
+    err.innerHTML = '<div class="err">[!] не получилось: ' + e.message + "</div>";
   }
 };
 document.getElementById("key").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("go").click(); });
+histRender();
 </script>
 </body>
 </html>
