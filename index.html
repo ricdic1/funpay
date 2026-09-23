@@ -1,0 +1,81 @@
+<!doctype html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Проверка баланса ключа</title>
+<style>
+  :root { --bg:#0b1120; --panel:#111a2e; --line:#1f2c47; --txt:#e6edf7;
+          --muted:#8ea0bd; --accent:#38bdf8; --ok:#34d399; --bad:#f87171; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--txt);
+         font-family:ui-sans-serif,system-ui,"Segoe UI",Roboto,sans-serif; line-height:1.5; }
+  .wrap { max-width:460px; margin:0 auto; padding:8vh 20px 40px; }
+  .card { background:var(--panel); border:1px solid var(--line); border-radius:14px; padding:20px; }
+  h1 { font-size:22px; margin:0 0 6px; }
+  .muted { color:var(--muted); font-size:14px; }
+  input { width:100%; padding:12px 14px; border-radius:10px; margin-top:12px;
+          border:1px solid var(--line); background:#16213a; color:var(--txt); font:inherit; }
+  button { width:100%; margin-top:12px; padding:12px; border-radius:10px; border:0; cursor:pointer;
+           background:linear-gradient(135deg,var(--accent),#22d3ee); color:#04121f;
+           font:inherit; font-weight:700; }
+  .alert { background:rgba(248,113,113,.12); border:1px solid rgba(248,113,113,.4);
+           color:var(--bad); padding:10px 14px; border-radius:10px; margin-top:12px; font-size:14px; }
+  .grid { display:grid; gap:12px; grid-template-columns:1fr 1fr; margin-top:14px; }
+  .stat { background:#16213a; border:1px solid var(--line); border-radius:12px; padding:14px; }
+  .stat .label { color:var(--muted); font-size:13px; }
+  .stat .value { font-size:22px; font-weight:700; }
+  code { font-family:ui-monospace,Consolas,monospace; font-size:13px; }
+  .pill { display:inline-block; padding:2px 9px; border-radius:999px; font-size:12px; font-weight:600;
+          background:rgba(52,211,153,.15); color:var(--ok); }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <div class="card">
+    <h1>🔑 Проверка баланса</h1>
+    <p class="muted">Вставь свой ключ <code>dahl_...</code> — покажем остаток и потраченное.</p>
+    <input id="key" type="text" placeholder="dahl_..." autocomplete="off">
+    <button id="go">Проверить</button>
+    <div id="err"></div>
+    <div id="res" style="display:none">
+      <p><code id="m"></code> <span class="pill" id="s"></span></p>
+      <div class="grid">
+        <div class="stat"><div class="label">Осталось</div><div class="value" id="a"></div></div>
+        <div class="stat"><div class="label">Потрачено</div><div class="value" id="p"></div></div>
+      </div>
+      <p class="muted" id="t"></p>
+    </div>
+  </div>
+</div>
+<script>
+// Адрес сервера: ?api=https://... в ссылке, иначе последний использованный, иначе дефолт.
+const qs = new URLSearchParams(location.search);
+let API_BASE = (qs.get("api") || "").replace(/\/+$/, "");
+if (API_BASE) { try { localStorage.setItem("tw_api", API_BASE); } catch (e) {} }
+if (!API_BASE) { try { API_BASE = localStorage.getItem("tw_api") || ""; } catch (e) {} }
+if (!API_BASE) { API_BASE = "https://desktop-s7bu0ef-1.tail46c54e.ts.net"; }
+const fmt = n => (n == null ? 0 : n).toLocaleString("ru-RU");
+document.getElementById("go").onclick = async () => {
+  const key = document.getElementById("key").value.trim();
+  const err = document.getElementById("err"), res = document.getElementById("res");
+  err.innerHTML = ""; res.style.display = "none";
+  if (!key) { err.innerHTML = '<div class="alert">Вставь ключ.</div>'; return; }
+  try {
+    const r = await fetch(API_BASE + "/api/check?key=" + encodeURIComponent(key));
+    if (!r.ok) throw new Error(r.status === 404 ? "Такой ключ у нас не числится." : "Ошибка " + r.status);
+    const d = await r.json();
+    document.getElementById("m").textContent = d.masked || "";
+    document.getElementById("s").textContent = d.status || "active";
+    document.getElementById("a").textContent = fmt(d.available);
+    document.getElementById("p").textContent = fmt(d.spent);
+    document.getElementById("t").textContent = "Выдано: " + fmt(d.total);
+    res.style.display = "block";
+  } catch (e) {
+    err.innerHTML = '<div class="alert">Не получилось: ' + e.message + "</div>";
+  }
+};
+document.getElementById("key").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("go").click(); });
+</script>
+</body>
+</html>
