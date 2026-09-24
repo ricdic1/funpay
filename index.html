@@ -37,6 +37,10 @@
   .hist code { color:var(--grn); }
   .blink { animation:bl 1s steps(1) infinite; }
   @keyframes bl { 50% { opacity:0; } }
+  details { border:1px solid var(--line); border-radius:8px; margin-top:8px; padding:8px 12px; }
+  summary { cursor:pointer; color:var(--grn); font-weight:700; }
+  details pre { background:#030805; border:1px solid var(--line); border-radius:8px;
+                padding:10px; overflow-x:auto; font-size:12px; }
 </style>
 </head>
 <body>
@@ -67,25 +71,43 @@
   </div>
   <div class="term" style="margin-top:16px">
     <h1><span class="prompt">root@tokenwave:~$</span> setup --guide</h1>
-    <div class="sub">// подключение за 5 минут</div>
+    <div class="sub">// твой ключ: <code>sk-...</code> // модели: <code>deepseek-v4-flash</code>, <code>minimax-m2.7</code></div>
     <div class="meta" style="font-size:13px">
-      <p><span class="prompt">01.</span> Base URL:<br><code class="gw">…</code><code>/v1</code></p>
-      <p><span class="prompt">02.</span> Модели:<br>
-      <code>deepseek-v4-flash</code><br>
-      <code>minimax-m2.7</code><br>
-      <code>glm-5.3-flash</code></p>
-      <p><span class="prompt">03. Cursor / VS Code:</span> Settings → Models → Custom / OpenAI-compatible → вставь Base URL и свой ключ <code>sk-...</code>.</p>
-      <p><span class="prompt">04. OpenCode:</span> в конфиге добавь кастомного провайдера:
-      <code>baseURL = <span class="gw">…</span>/v1</code>, <code>apiKey</code> = твой ключ <code>sk-...</code>, модель — одна из списка выше.</p>
-      <p><span class="prompt">05. Python:</span></p>
-      <pre>from openai import OpenAI
+      <p><span class="prompt">base-url:</span> <code class="gw">…</code><code>/v1</code></p>
+      <details>
+        <summary>[+] opencode</summary>
+        <p>В конфиг добавь кастомного провайдера:</p>
+        <pre>baseURL = <span class="gw">…</span>/v1
+apiKey = sk-... (твой ключ)
+model = deepseek-v4-flash</pre>
+        <p class="sub">// "code is invalid" = ключ вставлен не в то поле: нужен apiKey кастомного провайдера.</p>
+      </details>
+      <details>
+        <summary>[+] vscode / cursor</summary>
+        <p>Settings → Models → Custom / OpenAI-compatible → Base URL как выше, ключ <code>sk-...</code>, модель <code>deepseek-v4-flash</code>.</p>
+      </details>
+      <details>
+        <summary>[+] open webui / librechat / sillytavern</summary>
+        <p>Подключение → OpenAI-совместимый сервер → Base URL как выше, ключ <code>sk-...</code>.</p>
+      </details>
+      <details>
+        <summary>[+] python</summary>
+        <pre>from openai import OpenAI
 client = OpenAI(api_key="sk-...",
     base_url="<span class="gw">…</span>/v1")
 r = client.chat.completions.create(
     model="deepseek-v4-flash",
     messages=[{"role": "user", "content": "Hi!"}])
 print(r.choices[0].message.content)</pre>
-      <p class="sub">// Ошибка "code is invalid" = ключ вставлен не в то поле: нужен apiKey кастомного провайдера, а не стандартный OpenAI-ключ.</p>
+      </details>
+      <details>
+        <summary>[+] curl</summary>
+        <pre>curl <span class="gw">…</span>/v1/chat/completions \
+ -H "Authorization: Bearer sk-..." \
+ -H "Content-Type: application/json" \
+ -d '{"model":"deepseek-v4-flash",
+ "messages":[{"role":"user","content":"Hi!"}]}'</pre>
+      </details>
     </div>
   </div>
 </div>
