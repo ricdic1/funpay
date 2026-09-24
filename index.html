@@ -41,15 +41,18 @@
   summary { cursor:pointer; color:var(--grn); font-weight:700; }
   details pre { background:#030805; border:1px solid var(--line); border-radius:8px;
                 padding:10px; overflow-x:auto; font-size:12px; }
+  #lang { position:fixed; top:12px; right:12px; width:auto; margin:0; padding:8px 14px;
+          font-size:13px; background:transparent; border:1px solid var(--grn); color:var(--grn); }
 </style>
 </head>
 <body>
+<button id="lang">RU | EN</button>
 <div class="wrap">
   <div class="term">
     <h1><span class="prompt">root@tokenwave:~$</span> balance --check<span class="blink">_</span></h1>
-    <div class="sub">// вставь свой ключ — покажем остаток, расход и диаграмму</div>
+    <div class="sub" data-ru="// вставь свой ключ — покажем остаток, расход и диаграмму" data-en="// paste your key — we'll show balance, usage and chart"></div>
     <input id="key" type="text" placeholder="sk-..." autocomplete="off" spellcheck="false">
-    <button id="go">[ выполнить проверку ]</button>
+    <button id="go" data-ru="[ выполнить проверку ]" data-en="[ check balance ]"></button>
     <div id="err"></div>
     <div id="res" class="res">
       <div class="donut-wrap">
@@ -61,8 +64,8 @@
           <text id="pct" x="60" y="66" text-anchor="middle" fill="#00ff88" font-size="18" font-weight="bold">–</text>
         </svg>
         <div class="nums">
-          <div class="l">осталось</div><div class="v" id="a">–</div>
-          <div class="l">потрачено</div><div class="v" id="p" style="color:var(--txt)">–</div>
+          <div class="l" data-ru="осталось" data-en="left">–</div><div class="v" id="a">–</div>
+          <div class="l" data-ru="потрачено" data-en="spent">–</div><div class="v" id="p" style="color:var(--txt)">–</div>
         </div>
       </div>
       <div class="meta" id="meta"></div>
@@ -71,27 +74,27 @@
   </div>
   <div class="term" style="margin-top:16px">
     <h1><span class="prompt">root@tokenwave:~$</span> setup --guide</h1>
-    <div class="sub">// твой ключ: <code>sk-...</code> // модели: <code>deepseek-v4-flash</code>, <code>minimax-m2.7</code></div>
+    <div class="sub" data-ru="// твой ключ: sk-... // модели: deepseek-v4-flash, minimax-m2.7" data-en="// your key: sk-... // models: deepseek-v4-flash, minimax-m2.7"></div>
     <div class="meta" style="font-size:13px">
       <p><span class="prompt">base-url:</span> <code class="gw">…</code><code>/v1</code></p>
       <details>
-        <summary>[+] opencode</summary>
-        <p>В конфиг добавь кастомного провайдера:</p>
+        <summary data-ru="[+] opencode" data-en="[+] opencode">[+] opencode</summary>
+        <p data-ru="В конфиг добавь кастомного провайдера:" data-en="Add a custom provider to config:"></p>
         <pre>baseURL = <span class="gw">…</span>/v1
-apiKey = sk-... (твой ключ)
+apiKey = sk-... <span class="tr" data-ru="(твой ключ)" data-en="(your key)"></span>
 model = deepseek-v4-flash</pre>
-        <p class="sub">// "code is invalid" = ключ вставлен не в то поле: нужен apiKey кастомного провайдера.</p>
+        <p class="sub" data-ru='// "code is invalid" = ключ вставлен не в то поле: нужен apiKey кастомного провайдера.' data-en='// "code is invalid" = key pasted into the wrong field: use the custom provider apiKey.'></p>
       </details>
       <details>
-        <summary>[+] vscode / cursor</summary>
-        <p>Settings → Models → Custom / OpenAI-compatible → Base URL как выше, ключ <code>sk-...</code>, модель <code>deepseek-v4-flash</code>.</p>
+        <summary data-ru="[+] vscode / cursor" data-en="[+] vscode / cursor">[+] vscode / cursor</summary>
+        <p><span data-ru="Settings → Models → Custom / OpenAI-compatible → вставь Base URL и свой ключ " data-en="Settings → Models → Custom / OpenAI-compatible → paste Base URL and your "></span><code>sk-...</code>, модель <code>deepseek-v4-flash</code>.</p>
       </details>
       <details>
-        <summary>[+] open webui / librechat / sillytavern</summary>
-        <p>Подключение → OpenAI-совместимый сервер → Base URL как выше, ключ <code>sk-...</code>.</p>
+        <summary data-ru="[+] open webui / librechat / sillytavern" data-en="[+] open webui / librechat / sillytavern">[+] open webui / librechat / sillytavern</summary>
+        <p><span data-ru="Подключение → OpenAI-совместимый сервер → Base URL как выше, ключ " data-en="Connection → OpenAI-compatible server → Base URL as above, key "></span><code>sk-...</code>.</p>
       </details>
       <details>
-        <summary>[+] python</summary>
+        <summary data-ru="[+] python" data-en="[+] python">[+] python</summary>
         <pre>from openai import OpenAI
 client = OpenAI(api_key="sk-...",
     base_url="<span class="gw">…</span>/v1")
@@ -101,7 +104,7 @@ r = client.chat.completions.create(
 print(r.choices[0].message.content)</pre>
       </details>
       <details>
-        <summary>[+] curl</summary>
+        <summary data-ru="[+] curl" data-en="[+] curl">[+] curl</summary>
         <pre>curl <span class="gw">…</span>/v1/chat/completions \
  -H "Authorization: Bearer sk-..." \
  -H "Content-Type: application/json" \
@@ -117,7 +120,40 @@ if (API_BASE) { try { localStorage.setItem("tw_api", API_BASE); } catch (e) {} }
 if (!API_BASE) { try { API_BASE = localStorage.getItem("tw_api") || ""; } catch (e) {} }
 if (!API_BASE) { API_BASE = "https://desktop-s7bu0ef-1.tail46c54e.ts.net"; }
 
-const fmt = n => (n == null ? 0 : n).toLocaleString("ru-RU");
+let LANG = "ru";
+try {
+  LANG = localStorage.getItem("tw_lang") || ((navigator.language || "").toLowerCase().startsWith("en") ? "en" : "ru");
+} catch (e) {}
+const T = {
+  go: { ru: "[ выполнить проверку ]", en: "[ check balance ]" },
+  needKey: { ru: "[!] вставь ключ.", en: "[!] paste the key." },
+  querying: { ru: "[*] запрос к API...", en: "[*] querying API..." },
+  unknown: { ru: "ключ у нас не числится.", en: "unknown key." },
+  failed: { ru: "[!] не получилось: ", en: "[!] failed: " },
+  hist: { ru: "// последние проверки", en: "// recent checks" },
+  clear: { ru: "[ очистить ]", en: "[ clear ]" },
+  gateway: { ru: "ключ шлюза", en: "gateway key" },
+  direct: { ru: "прямой ключ", en: "direct key" },
+  issued: { ru: "выдано", en: "issued" },
+};
+const t = k => (T[k] && T[k][LANG]) || k;
+
+function applyLang() {
+  document.documentElement.lang = LANG;
+  document.querySelectorAll("[data-ru]").forEach(el => {
+    el.textContent = LANG === "en" ? (el.getAttribute("data-en") || "") : (el.getAttribute("data-ru") || "");
+  });
+  document.getElementById("lang").textContent = LANG === "ru" ? "RU | EN" : "EN | RU";
+  document.getElementById("go").textContent = t("go");
+  try { localStorage.setItem("tw_lang", LANG); } catch (e) {}
+  histRender();
+}
+document.getElementById("lang").onclick = () => {
+  LANG = LANG === "ru" ? "en" : "ru";
+  applyLang();
+};
+
+const fmt = n => (n == null ? 0 : n).toLocaleString(LANG === "en" ? "en-US" : "ru-RU");
 const C = 2 * Math.PI * 48;
 
 function histRender() {
@@ -125,9 +161,9 @@ function histRender() {
   try { h = JSON.parse(localStorage.getItem("tw_hist") || "[]"); } catch (e) {}
   const box = document.getElementById("hist");
   if (!h.length) { box.innerHTML = ""; return; }
-  box.innerHTML = "<div class='sub'>// последние проверки</div>" + h.map(x =>
+  box.innerHTML = "<div class='sub'>" + t("hist") + "</div>" + h.map(x =>
     `<div class="row"><code>${x.m}</code><span>${fmt(x.a)} / ${x.t}</span></div>`
-  ).join("") + `<button class="ghost" id="clr">[ очистить ]</button>`;
+  ).join("") + `<button class="ghost" id="clr">${t("clear")}</button>`;
   document.getElementById("clr").onclick = () => {
     try { localStorage.removeItem("tw_hist"); } catch (e) {}
     histRender();
@@ -136,7 +172,7 @@ function histRender() {
 function histAdd(m, a) {
   let h = [];
   try { h = JSON.parse(localStorage.getItem("tw_hist") || "[]"); } catch (e) {}
-  h.unshift({ m, a, t: new Date().toLocaleString("ru-RU", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) });
+  h.unshift({ m, a, t: new Date().toLocaleString(LANG === "en" ? "en-GB" : "ru-RU", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) });
   try { localStorage.setItem("tw_hist", JSON.stringify(h.slice(0, 8))); } catch (e) {}
   histRender();
 }
@@ -145,11 +181,11 @@ document.getElementById("go").onclick = async () => {
   const key = document.getElementById("key").value.trim();
   const err = document.getElementById("err"), res = document.getElementById("res");
   err.innerHTML = ""; res.style.display = "none";
-  if (!key) { err.innerHTML = '<div class="err">[!] вставь ключ.</div>'; return; }
-  err.innerHTML = '<div class="sub">[*] запрос к API...</div>';
+  if (!key) { err.innerHTML = '<div class="err">' + t("needKey") + "</div>"; return; }
+  err.innerHTML = '<div class="sub">' + t("querying") + "</div>";
   try {
     const r = await fetch(API_BASE + "/api/check?key=" + encodeURIComponent(key));
-    if (!r.ok) throw new Error(r.status === 404 ? "ключ у нас не числится." : "HTTP " + r.status);
+    if (!r.ok) throw new Error(r.status === 404 ? t("unknown") : "HTTP " + r.status);
     const d = await r.json();
     err.innerHTML = "";
     const total = d.total || 0, avail = d.available || 0;
@@ -159,17 +195,17 @@ document.getElementById("go").onclick = async () => {
     document.getElementById("a").textContent = fmt(avail);
     document.getElementById("p").textContent = fmt(d.spent);
     document.getElementById("meta").textContent =
-      (d.masked || "") + " | " + (d.kind === "sk" ? "ключ шлюза" : "прямой ключ") +
-      " | выдано: " + fmt(total) + " | " + (d.status || "active");
+      (d.masked || "") + " | " + (d.kind === "sk" ? t("gateway") : t("direct")) +
+      " | " + t("issued") + ": " + fmt(total) + " | " + (d.status || "active");
     res.style.display = "block";
     histAdd(d.masked || (key.slice(0, 8) + "…" + key.slice(-4)), avail);
   } catch (e) {
-    err.innerHTML = '<div class="err">[!] не получилось: ' + e.message + "</div>";
+    err.innerHTML = '<div class="err">' + t("failed") + e.message + "</div>";
   }
 };
 document.getElementById("key").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("go").click(); });
 document.querySelectorAll(".gw").forEach(el => { el.textContent = API_BASE; });
-histRender();
+applyLang();
 </script>
 </body>
 </html>
