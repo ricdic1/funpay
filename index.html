@@ -47,6 +47,7 @@
 </head>
 <body>
 <button id="lang">RU | EN</button>
+<div id="srv" style="position:fixed;top:12px;left:12px;font-size:12px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--dim)">…</div>
 <div class="wrap">
   <div class="term">
     <h1><span class="prompt">root@tokenwave:~$</span> balance --check<span class="blink">_</span></h1>
@@ -205,7 +206,29 @@ document.getElementById("go").onclick = async () => {
 };
 document.getElementById("key").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("go").click(); });
 document.querySelectorAll(".gw").forEach(el => { el.textContent = API_BASE; });
+async function srvCheck() {
+  const el = document.getElementById("srv");
+  const okTxt = { ru: "● сервер на связи", en: "● server online" };
+  const badTxt = { ru: "● сервер недоступен", en: "● server offline" };
+  try {
+    const ctl = new AbortController();
+    const to = setTimeout(() => ctl.abort(), 8000);
+    const r = await fetch(API_BASE + "/health", { signal: ctl.signal });
+    clearTimeout(to);
+    const ok = r.ok && (await r.text()).trim() === "ok";
+    el.textContent = ok ? okTxt[LANG] : badTxt[LANG];
+    el.style.color = ok ? "var(--grn)" : "var(--red)";
+    el.style.borderColor = ok ? "var(--grn)" : "var(--red)";
+  } catch (e) {
+    el.textContent = badTxt[LANG];
+    el.style.color = "var(--red)";
+    el.style.borderColor = "var(--red)";
+  }
+}
+const _origApplyLang = applyLang;
+applyLang = function() { _origApplyLang(); srvCheck(); };
 applyLang();
+setInterval(srvCheck, 60000);
 </script>
 </body>
 </html>
