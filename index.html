@@ -65,6 +65,28 @@
     </div>
     <div class="hist" id="hist"></div>
   </div>
+  <div class="term" style="margin-top:16px">
+    <h1><span class="prompt">root@tokenwave:~$</span> setup --guide</h1>
+    <div class="sub">// подключение за 5 минут</div>
+    <div class="meta" style="font-size:13px">
+      <p><span class="prompt">01.</span> Base URL:<br><code id="bu">https://inference.dahl.global/v1</code></p>
+      <p><span class="prompt">02.</span> Модели:<br>
+      <code>deepseek-ai/DeepSeek-V4-Flash-0731</code><br>
+      <code>MiniMaxAI/MiniMax-M2.7</code></p>
+      <p><span class="prompt">03. Cursor / VS Code:</span> Settings → Models → Custom / OpenAI-compatible → вставь Base URL и свой ключ.</p>
+      <p><span class="prompt">04. OpenCode:</span> в конфиге добавь кастомного провайдера:
+      <code>baseURL = https://inference.dahl.global/v1</code>, <code>apiKey</code> = твой ключ (начинается с <code>dahl_</code> — так и должно быть), модель — одна из списка выше.</p>
+      <p><span class="prompt">05. Python:</span></p>
+      <pre>from openai import OpenAI
+client = OpenAI(api_key="dahl_...",
+    base_url="https://inference.dahl.global/v1")
+r = client.chat.completions.create(
+    model="deepseek-ai/DeepSeek-V4-Flash-0731",
+    messages=[{"role": "user", "content": "Hi!"}])
+print(r.choices[0].message.content)</pre>
+      <p class="sub">// Ошибка "code is invalid" = ключ вставлен не в то поле: нужен apiKey кастомного провайдера, а не стандартный OpenAI-ключ.</p>
+    </div>
+  </div>
 </div>
 <script>
 let API_BASE = (new URLSearchParams(location.search).get("api") || "").replace(/\/+$/, "");
