@@ -102,14 +102,14 @@
       <div class="hist" id="hist"></div>
     </div>
     <div class="col-r">
-      <div class="term" id="reqCard" hidden>
+      <div class="term" id="reqCard">
         <h2 data-ru="Последние запросы" data-en="Recent requests">Последние запросы</h2>
         <div class="scroll"><table class="spend"><thead><tr>
           <th data-ru="Время" data-en="Time">Время</th><th data-ru="Модель" data-en="Model">Модель</th>
           <th>Prompt</th><th>Compl.</th><th data-ru="Списано" data-en="Cost">Списано</th>
         </tr></thead><tbody id="spendBody"></tbody></table></div>
       </div>
-      <div class="term" id="expCard" hidden>
+      <div class="term" id="expCard">
         <h2><span data-ru="Расход" data-en="Spending">Расход</span></h2>
         <div class="toolbar">
           <select id="modelSel"></select>
@@ -313,8 +313,6 @@ document.getElementById("go").onclick = async () => {
   const key = document.getElementById("key").value.trim();
   const err = document.getElementById("err"), res = document.getElementById("res");
   err.innerHTML = ""; res.style.display = "none";
-  document.getElementById("reqCard").hidden = true;
-  document.getElementById("expCard").hidden = true;
   CUR_KEY = "";
   if (!key) { err.innerHTML = '<div class="err">' + t("needKey") + "</div>"; return; }
   err.innerHTML = '<div class="sub">' + t("querying") + "</div>";
@@ -329,10 +327,32 @@ document.getElementById("go").onclick = async () => {
     histAdd(d.masked || (key.slice(0, 8) + "…" + key.slice(-4)), avail0(d));
   } catch (e) {
     err.innerHTML = '<div class="err">' + t("failed") + e.message + "</div>";
+    placeholders();
   }
 };
 function avail0(d) { return d.available || 0; }
 document.getElementById("key").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("go").click(); });
+function placeholders() {
+  const emptyRow = `<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
+  document.getElementById("spendBody").innerHTML = emptyRow + emptyRow + emptyRow;
+  const box = document.getElementById("bars");
+  const days = [];
+  const now = new Date();
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date(now);
+    d.setDate(now.getDate() - i);
+    days.push(("0" + d.getDate()).slice(-2) + "." + ("0" + (d.getMonth() + 1)).slice(-2));
+  }
+  box.innerHTML = days.map(dl =>
+    `<div class="bar"><div class="v">0</div><div class="col" style="height:3px"></div><div class="d">${dl}</div></div>`
+  ).join("");
+  document.getElementById("barsNote").textContent =
+    (LANG === "en" ? "// check a key above to fill the chart" : "// проверь ключ выше — тут появится расход");
+  document.getElementById("expTotal").textContent = "0";
+  document.getElementById("reqCard").hidden = false;
+  document.getElementById("expCard").hidden = false;
+}
+placeholders();
 document.querySelectorAll(".gw").forEach(el => { el.textContent = API_BASE; });
 async function srvCheck() {
   const el = document.getElementById("srv");
