@@ -124,9 +124,9 @@
   .meta { font-size:12px; color:var(--dim); margin-top:10px; }
 
   /* ── history ── */
-  .hist { margin-top:18px; font-size:13px; }
-  .hist .row { display:flex; justify-content:space-between; padding:6px 0;
-               border-bottom:1px dotted var(--line); }
+  .hist { margin-top:18px; font-size:13px; max-height:180px; overflow-y:auto; }
+  .hist .row { display:flex; justify-content:space-between; padding:5px 0;
+               border-bottom:1px dotted var(--line); font-size:12px; }
   .hist code { color:var(--grn); }
 
   /* ── blink cursor ── */
@@ -477,7 +477,7 @@ function histAdd(m, a) {
       LANG === "en" ? "en-GB" : "ru-RU",
       { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })
   });
-  try { localStorage.setItem("tw_hist", JSON.stringify(h.slice(0, 8))); } catch (e) {}
+  try { localStorage.setItem("tw_hist", JSON.stringify(h.slice(0, 4))); } catch (e) {}
   histRender();
 }
 
