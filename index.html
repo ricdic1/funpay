@@ -3,86 +3,239 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="description" content="TokenWave — проверка баланса API-ключа, расход токенов и статистика использования">
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>⚡</text></svg>">
 <title>TokenWave // balance</title>
 <style>
+  /* ── root & reset ── */
   :root { --bg:#04070a; --panel:#0a120d; --line:#0f2a1a; --txt:#c9f5d8;
           --dim:#5c7a68; --grn:#00ff88; --grn-dim:#0a5c36; --red:#ff5470; --pink:#ff9ecb; }
   * { box-sizing:border-box; }
   body { margin:0; background:radial-gradient(1000px 500px at 50% -10%, #07130c, var(--bg));
-         color:var(--txt); font-family:ui-monospace,Consolas,"Cascadia Code",monospace; }
+         color:var(--txt); font-family:ui-monospace,Consolas,"Cascadia Code",monospace;
+         overflow-x:hidden; }
+
+  /* ── CRT scan-line overlay ── */
+  body::after {
+    content:''; position:fixed; inset:0; pointer-events:none; z-index:9999;
+    background:repeating-linear-gradient(
+      0deg, transparent, transparent 2px,
+      rgba(0,255,136,.018) 2px, rgba(0,255,136,.018) 4px);
+    animation:scanDrift 10s linear infinite;
+  }
+  @keyframes scanDrift { to { background-position:0 200px; } }
+
+  /* ── layout ── */
   .wrap { max-width:1060px; margin:0 auto; padding:6vh 18px 40px; }
   .grid { display:grid; grid-template-columns:minmax(300px,420px) 1fr; gap:16px; align-items:start; }
   @media (max-width:820px) { .grid { grid-template-columns:1fr; } }
   .col-r { display:flex; flex-direction:column; gap:16px; min-width:0; }
-  .term { background:var(--panel); border:1px solid var(--line); border-radius:12px;
-          padding:20px; box-shadow:0 0 40px rgba(0,255,136,.07); }
+
+  /* ── card / terminal ── */
+  .term {
+    background:var(--panel); border:1px solid var(--line); border-radius:12px;
+    padding:20px; box-shadow:0 0 40px rgba(0,255,136,.07);
+    transition:box-shadow .4s ease, border-color .4s ease, transform .3s ease;
+    /* entrance animation */
+    opacity:0; animation:fadeInUp .65s ease-out forwards;
+  }
+  .term:hover {
+    box-shadow:0 0 60px rgba(0,255,136,.15);
+    border-color:var(--grn-dim);
+    transform:translateY(-2px);
+  }
+  /* staggered entrance delays */
+  .grid > .term             { animation-delay:.1s;  }
+  .col-r > .term:nth-child(1) { animation-delay:.25s; }
+  .col-r > .term:nth-child(2) { animation-delay:.4s;  }
+  .wrap  > .term:last-child   { animation-delay:.55s; }
+
+  @keyframes fadeInUp {
+    from { opacity:0; transform:translateY(28px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+
+  /* ── typography ── */
   .prompt { color:var(--grn); }
   h1 { font-size:18px; margin:0 0 4px; color:var(--grn); text-shadow:0 0 12px rgba(0,255,136,.5); }
   h2 { font-size:15px; margin:0 0 10px; color:var(--grn); }
   .sub { color:var(--dim); font-size:13px; }
-  input, select { width:100%; margin-top:12px; padding:12px; border-radius:8px;
-          border:1px solid var(--line); background:#030805; color:var(--grn);
-          font:inherit; outline:none; }
-  input:focus, select:focus { border-color:var(--grn); }
+
+  /* ── form elements ── */
+  input, select {
+    width:100%; margin-top:12px; padding:12px; border-radius:8px;
+    border:1px solid var(--line); background:#030805; color:var(--grn);
+    font:inherit; outline:none;
+    transition:border-color .3s, box-shadow .3s;
+  }
+  input:focus, select:focus {
+    border-color:var(--grn);
+    box-shadow:0 0 18px rgba(0,255,136,.15);
+  }
   select { width:auto; margin:0; padding:6px 10px; font-size:13px; }
-  button { width:100%; margin-top:12px; padding:12px; border-radius:8px; border:0; cursor:pointer;
-           background:var(--grn); color:#02120a; font:inherit; font-weight:700; }
-  button:hover { filter:brightness(1.1); }
-  .ghost { background:transparent; border:1px solid var(--line); color:var(--dim);
-           font-size:12px; padding:6px 10px; width:auto; margin-top:10px; }
-  .chip { background:transparent; border:1px solid var(--line); color:var(--dim);
-          font-size:12px; padding:6px 12px; width:auto; margin:0; border-radius:999px; }
+
+  /* ── primary button ── */
+  button {
+    width:100%; margin-top:12px; padding:12px; border-radius:8px; border:0; cursor:pointer;
+    background:var(--grn); color:#02120a; font:inherit; font-weight:700;
+    transition:filter .2s, transform .15s, box-shadow .3s;
+    position:relative; overflow:hidden;
+  }
+  button:hover  { filter:brightness(1.12); transform:scale(1.02); box-shadow:0 0 24px rgba(0,255,136,.35); }
+  button:active { transform:scale(.97); }
+  /* loading state */
+  button.loading { pointer-events:none; color:transparent; }
+  button.loading::after {
+    content:''; position:absolute; inset:0; margin:auto;
+    width:20px; height:20px; border:3px solid transparent;
+    border-top-color:#02120a; border-radius:50%;
+    animation:spin .55s linear infinite;
+  }
+  @keyframes spin { to { transform:rotate(360deg); } }
+
+  /* ── ghost & chip buttons ── */
+  .ghost {
+    background:transparent; border:1px solid var(--line); color:var(--dim);
+    font-size:12px; padding:6px 10px; width:auto; margin-top:10px;
+    transition:border-color .3s, color .3s;
+  }
+  .ghost:hover { border-color:var(--grn); color:var(--grn); transform:none; box-shadow:none; }
+  .chip {
+    background:transparent; border:1px solid var(--line); color:var(--dim);
+    font-size:12px; padding:6px 12px; width:auto; margin:0; border-radius:999px;
+    transition:border-color .3s, color .3s;
+  }
+  .chip:hover { transform:none; box-shadow:none; }
   .chip.on { border-color:var(--red); color:var(--red); }
+
+  /* ── error ── */
   .err { color:var(--red); font-size:13px; margin-top:10px; }
+
+  /* ── result panel ── */
   .res { margin-top:16px; border-top:1px dashed var(--line); padding-top:16px; display:none; }
+  .res.show { animation:fadeIn .5s ease-out; }
+  @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
+
+  /* ── donut ── */
   .donut-wrap { display:flex; gap:16px; align-items:center; }
+  #arc { transition:stroke-dasharray .9s cubic-bezier(.4,0,.2,1); }
   .nums .v { font-size:22px; color:var(--grn); font-weight:700; }
   .nums .l { font-size:12px; color:var(--dim); }
   .meta { font-size:12px; color:var(--dim); margin-top:10px; }
+
+  /* ── history ── */
   .hist { margin-top:18px; font-size:13px; }
   .hist .row { display:flex; justify-content:space-between; padding:6px 0;
                border-bottom:1px dotted var(--line); }
   .hist code { color:var(--grn); }
+
+  /* ── blink cursor ── */
   .blink { animation:bl 1s steps(1) infinite; }
   @keyframes bl { 50% { opacity:0; } }
-  details { border:1px solid var(--line); border-radius:8px; margin-top:8px; padding:8px 12px; }
+
+  /* ── details / accordion ── */
+  details {
+    border:1px solid var(--line); border-radius:8px; margin-top:8px; padding:8px 12px;
+    transition:border-color .3s;
+  }
+  details:hover, details[open] { border-color:var(--grn-dim); }
   summary { cursor:pointer; color:var(--grn); font-weight:700; }
   details pre { background:#030805; border:1px solid var(--line); border-radius:8px;
                 padding:10px; overflow-x:auto; font-size:12px; }
-  #lang { position:fixed; top:12px; right:12px; width:auto; margin:0; padding:8px 14px;
-          font-size:13px; background:transparent; border:1px solid var(--grn); color:var(--grn); }
+
+  /* ── fixed UI (lang + server status) ── */
+  #lang {
+    position:fixed; top:12px; right:12px; z-index:100;
+    width:auto; margin:0; padding:8px 14px;
+    font-size:13px; background:transparent;
+    border:1px solid var(--grn); color:var(--grn);
+  }
+  #srv {
+    position:fixed; top:12px; left:12px; z-index:100;
+    font-size:12px; padding:8px 14px; border-radius:8px;
+    border:1px solid var(--line); background:var(--panel); color:var(--dim);
+    transition:color .4s, border-color .4s;
+  }
+
+  /* ── spend table ── */
   table.spend { width:100%; border-collapse:collapse; font-size:12px; }
   table.spend th, table.spend td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
   table.spend th { color:var(--dim); font-weight:600; font-size:11px; text-transform:uppercase; }
+  /* staggered row entrance */
+  table.spend tbody tr { opacity:0; animation:fadeInRow .4s ease-out forwards; }
+  @keyframes fadeInRow {
+    from { opacity:0; transform:translateX(-12px); }
+    to   { opacity:1; transform:translateX(0); }
+  }
   .scroll { overflow-x:auto; }
   #reqCard { flex:1; display:flex; flex-direction:column; }
   #reqCard .scroll { overflow-y:auto; max-height:460px; }
   #reqCard thead th { position:sticky; top:0; background:var(--panel); }
+
+  /* ── bar chart ── */
   .bars { display:flex; align-items:flex-end; gap:10px; height:170px; margin-top:12px; }
-  .bar { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:0; }
-  .bar .col { width:100%; max-width:44px; border-radius:6px 6px 0 0; overflow:hidden;
-              display:flex; flex-direction:column; justify-content:flex-end; min-height:3px; }
-  .bar .in { background:var(--pink); opacity:.85; }
+  .bar {
+    flex:1; display:flex; flex-direction:column; align-items:center;
+    justify-content:flex-end; height:100%; min-width:0;
+    opacity:0; animation:barAppear .5s ease-out forwards;
+  }
+  @keyframes barAppear {
+    from { opacity:0; transform:translateY(18px); }
+    to   { opacity:1; transform:translateY(0); }
+  }
+  .bar .col {
+    width:100%; max-width:44px; border-radius:6px 6px 0 0; overflow:hidden;
+    display:flex; flex-direction:column; justify-content:flex-end; min-height:3px;
+    transform-origin:bottom; transform:scaleY(0);
+    animation:growUp .6s cubic-bezier(.4,0,.2,1) forwards;
+  }
+  @keyframes growUp { to { transform:scaleY(1); } }
+  .bar .in  { background:var(--pink); opacity:.85; }
   .bar .out { background:var(--red); }
-  .bar .d { font-size:11px; color:var(--dim); margin-top:6px; }
-  .bar .v { font-size:10px; color:var(--grn); margin-bottom:4px; }
-  .legend { display:flex; gap:14px; font-size:12px; color:var(--dim); margin-top:8px; }
+  .bar .d   { font-size:11px; color:var(--dim); margin-top:6px; }
+  .bar .v   { font-size:10px; color:var(--grn); margin-bottom:4px; }
+  .legend   { display:flex; gap:14px; font-size:12px; color:var(--dim); margin-top:8px; }
   .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; }
-  .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:4px; }
-  .total { font-size:26px; color:var(--red); font-weight:700; text-shadow:0 0 14px rgba(255,84,112,.4); }
+  .toolbar  { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:4px; }
+  .total    { font-size:26px; color:var(--red); font-weight:700;
+              text-shadow:0 0 14px rgba(255,84,112,.4); transition:color .3s; }
+
+  /* ── floating particles ── */
+  .particle {
+    position:fixed; width:2px; height:2px; border-radius:50%;
+    background:var(--grn); opacity:0; pointer-events:none; z-index:-1;
+    animation:particleFloat 6s ease-in-out infinite;
+  }
+  @keyframes particleFloat {
+    0%,100% { opacity:0; transform:translateY(0); }
+    20%     { opacity:.35; }
+    80%     { opacity:.12; }
+    100%    { transform:translateY(-130px); opacity:0; }
+  }
 </style>
 </head>
 <body>
+
 <button id="lang">RU | EN</button>
-<div id="srv" style="position:fixed;top:12px;left:12px;font-size:12px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--dim)">…</div>
+<div id="srv">…</div>
+<div id="particles"></div>
+
 <div class="wrap">
   <div class="grid">
+
+    <!-- ═══ LEFT: balance check ═══ -->
     <div class="term">
-      <h1><span class="prompt">root@tokenwave:~$</span> balance --check<span class="blink">_</span></h1>
-      <div class="sub" data-ru="// вставь свой ключ — покажем остаток, расход и диаграмму" data-en="// paste your key — we'll show balance, usage and chart"></div>
+      <h1>
+        <span class="prompt">root@tokenwave:~$</span>
+        <span id="typed"></span><span class="blink">_</span>
+      </h1>
+      <div class="sub"
+           data-ru="// вставь свой ключ — покажем остаток, расход и диаграмму"
+           data-en="// paste your key — we'll show balance, usage and chart"></div>
       <input id="key" type="text" placeholder="sk-..." autocomplete="off" spellcheck="false">
       <button id="go" data-ru="[ выполнить проверку ]" data-en="[ check balance ]"></button>
       <div id="err"></div>
+
       <div id="res" class="res">
         <div class="donut-wrap">
           <svg width="120" height="120" viewBox="0 0 120 120">
@@ -90,25 +243,42 @@
             <circle id="arc" cx="60" cy="60" r="48" fill="none" stroke="#00ff88" stroke-width="12"
                     stroke-linecap="round" transform="rotate(-90 60 60)"
                     stroke-dasharray="0 301.6" style="filter:drop-shadow(0 0 6px rgba(0,255,136,.7))"/>
-            <text id="pct" x="60" y="66" text-anchor="middle" fill="#00ff88" font-size="18" font-weight="bold">–</text>
+            <text id="pct" x="60" y="66" text-anchor="middle" fill="#00ff88"
+                  font-size="18" font-weight="bold">–</text>
           </svg>
           <div class="nums">
-            <div class="l" data-ru="осталось" data-en="left">–</div><div class="v" id="a">–</div>
-            <div class="l" data-ru="потрачено" data-en="spent">–</div><div class="v" id="p" style="color:var(--txt)">–</div>
+            <div class="l" data-ru="осталось" data-en="left">–</div>
+            <div class="v" id="a">–</div>
+            <div class="l" data-ru="потрачено" data-en="spent">–</div>
+            <div class="v" id="p" style="color:var(--txt)">–</div>
           </div>
         </div>
         <div class="meta" id="meta"></div>
       </div>
+
       <div class="hist" id="hist"></div>
     </div>
+
+    <!-- ═══ RIGHT column ═══ -->
     <div class="col-r">
+
+      <!-- recent requests -->
       <div class="term" id="reqCard">
         <h2 data-ru="Последние запросы" data-en="Recent requests">Последние запросы</h2>
-        <div class="scroll"><table class="spend"><thead><tr>
-          <th data-ru="Время" data-en="Time">Время</th><th data-ru="Модель" data-en="Model">Модель</th>
-          <th>Prompt</th><th>Compl.</th><th data-ru="Списано" data-en="Cost">Списано</th>
-        </tr></thead><tbody id="spendBody"></tbody></table></div>
+        <div class="scroll">
+          <table class="spend">
+            <thead><tr>
+              <th data-ru="Время" data-en="Time">Время</th>
+              <th data-ru="Модель" data-en="Model">Модель</th>
+              <th>Prompt</th><th>Compl.</th>
+              <th data-ru="Списано" data-en="Cost">Списано</th>
+            </tr></thead>
+            <tbody id="spendBody"></tbody>
+          </table>
+        </div>
       </div>
+
+      <!-- spending chart -->
       <div class="term" id="expCard">
         <h2><span data-ru="Расход" data-en="Spending">Расход</span></h2>
         <div class="toolbar">
@@ -118,33 +288,55 @@
         </div>
         <div class="sub" data-ru="Потрачено токенов:" data-en="Tokens spent:"></div>
         <div class="total" id="expTotal">0</div>
-    <div class="bars" id="bars"></div>
-    <div class="sub" id="barsNote" style="margin-top:8px"></div>
-    <div class="legend"><span><i style="background:var(--pink)"></i>Input</span><span><i style="background:var(--red)"></i>Output</span></div>
+        <div class="bars" id="bars"></div>
+        <div class="sub" id="barsNote" style="margin-top:8px"></div>
+        <div class="legend">
+          <span><i style="background:var(--pink)"></i>Input</span>
+          <span><i style="background:var(--red)"></i>Output</span>
+        </div>
       </div>
-    </div>
-  </div>
+
+    </div><!-- /col-r -->
+  </div><!-- /grid -->
+
+  <!-- ═══ SETUP GUIDE ═══ -->
   <div class="term" style="margin-top:16px">
     <h1><span class="prompt">root@tokenwave:~$</span> setup --guide</h1>
-    <div class="sub" data-ru="// твой ключ: sk-... // модели: deepseek-v4-flash, minimax-m2.7" data-en="// your key: sk-... // models: deepseek-v4-flash, minimax-m2.7"></div>
+    <div class="sub"
+         data-ru="// твой ключ: sk-... // модели: deepseek-v4-flash, minimax-m2.7"
+         data-en="// your key: sk-... // models: deepseek-v4-flash, minimax-m2.7"></div>
     <div class="meta" style="font-size:13px">
       <p><span class="prompt">base-url:</span> <code class="gw">…</code><code>/v1</code></p>
+
       <details>
         <summary data-ru="[+] opencode" data-en="[+] opencode">[+] opencode</summary>
         <p data-ru="В конфиг добавь кастомного провайдера:" data-en="Add a custom provider to config:"></p>
         <pre>baseURL = <span class="gw">…</span>/v1
 apiKey = sk-... <span class="tr" data-ru="(твой ключ)" data-en="(your key)"></span>
 model = deepseek-v4-flash</pre>
-        <p class="sub" data-ru='// "code is invalid" = ключ вставлен не в то поле: нужен apiKey кастомного провайдера.' data-en='// "code is invalid" = key pasted into the wrong field: use the custom provider apiKey.'></p>
+        <p class="sub" data-ru='// "code is invalid" = ключ вставлен не в то поле: нужен apiKey кастомного провайдера.'
+                        data-en='// "code is invalid" = key pasted into the wrong field: use the custom provider apiKey.'></p>
       </details>
+
       <details>
         <summary data-ru="[+] vscode / cursor" data-en="[+] vscode / cursor">[+] vscode / cursor</summary>
-        <p><span data-ru="Settings → Models → Custom / OpenAI-compatible → вставь Base URL и свой ключ " data-en="Settings → Models → Custom / OpenAI-compatible → paste Base URL and your "></span><code>sk-...</code>, модель <code>deepseek-v4-flash</code>.</p>
+        <p>
+          <span data-ru="Settings → Models → Custom / OpenAI-compatible → вставь Base URL и свой ключ "
+                data-en="Settings → Models → Custom / OpenAI-compatible → paste Base URL and your "></span>
+          <code>sk-...</code>, модель <code>deepseek-v4-flash</code>.
+        </p>
       </details>
+
       <details>
-        <summary data-ru="[+] open webui / librechat / sillytavern" data-en="[+] open webui / librechat / sillytavern">[+] open webui / librechat / sillytavern</summary>
-        <p><span data-ru="Подключение → OpenAI-совместимый сервер → Base URL как выше, ключ " data-en="Connection → OpenAI-compatible server → Base URL as above, key "></span><code>sk-...</code>.</p>
+        <summary data-ru="[+] open webui / librechat / sillytavern"
+                 data-en="[+] open webui / librechat / sillytavern">[+] open webui / librechat / sillytavern</summary>
+        <p>
+          <span data-ru="Подключение → OpenAI-совместимый сервер → Base URL как выше, ключ "
+                data-en="Connection → OpenAI-compatible server → Base URL as above, key "></span>
+          <code>sk-...</code>.
+        </p>
       </details>
+
       <details>
         <summary data-ru="[+] python" data-en="[+] python">[+] python</summary>
         <pre>from openai import OpenAI
@@ -155,6 +347,7 @@ r = client.chat.completions.create(
     messages=[{"role": "user", "content": "Hi!"}])
 print(r.choices[0].message.content)</pre>
       </details>
+
       <details>
         <summary data-ru="[+] curl" data-en="[+] curl">[+] curl</summary>
         <pre>curl <span class="gw">…</span>/v1/chat/completions \
@@ -165,42 +358,87 @@ print(r.choices[0].message.content)</pre>
       </details>
     </div>
   </div>
-</div>
+
+</div><!-- /wrap -->
+
 <script>
+/* ════════════════════════════════════════════════
+   TokenWave — balance checker
+   ════════════════════════════════════════════════ */
+
+// ── API base ──
 let API_BASE = (new URLSearchParams(location.search).get("api") || "").replace(/\/+$/, "");
 if (API_BASE) { try { localStorage.setItem("tw_api", API_BASE); } catch (e) {} }
 if (!API_BASE) { try { API_BASE = localStorage.getItem("tw_api") || ""; } catch (e) {} }
 if (!API_BASE) { API_BASE = "https://desktop-s7bu0ef-1.tail46c54e.ts.net"; }
 
+// ── i18n ──
 let LANG = "ru";
 try {
-  LANG = localStorage.getItem("tw_lang") || ((navigator.language || "").toLowerCase().startsWith("en") ? "en" : "ru");
+  LANG = localStorage.getItem("tw_lang") ||
+         ((navigator.language || "").toLowerCase().startsWith("en") ? "en" : "ru");
 } catch (e) {}
+
 const T = {
-  go: { ru: "[ выполнить проверку ]", en: "[ check balance ]" },
-  needKey: { ru: "[!] вставь ключ.", en: "[!] paste the key." },
-  querying: { ru: "[*] запрос к API...", en: "[*] querying API..." },
-  unknown: { ru: "ключ у нас не числится.", en: "unknown key." },
-  failed: { ru: "[!] не получилось: ", en: "[!] failed: " },
-  hist: { ru: "// последние проверки", en: "// recent checks" },
-  noReq: { ru: "Запросов пока нет — таблица появится после первых обращений через шлюз.", en: "No requests yet — the table appears after first gateway calls." },
-  noDaily: { ru: "Дневная статистика — только для ключей шлюза (sk-...).", en: "Daily stats for gateway keys (sk-...) only." },
-  clear: { ru: "[ очистить ]", en: "[ clear ]" },
-  gateway: { ru: "ключ шлюза", en: "gateway key" },
-  direct: { ru: "прямой ключ", en: "direct key" },
-  issued: { ru: "выдано", en: "issued" },
-  noData: { ru: "// пока пусто — проверь ключ выше", en: "// empty yet — check a key above" },
+  go:      { ru: "[ выполнить проверку ]", en: "[ check balance ]" },
+  needKey: { ru: "[!] вставь ключ.",       en: "[!] paste the key." },
+  querying:{ ru: "[*] запрос к API...",    en: "[*] querying API..." },
+  unknown: { ru: "ключ у нас не числится.",en: "unknown key." },
+  failed:  { ru: "[!] не получилось: ",    en: "[!] failed: " },
+  hist:    { ru: "// последние проверки",  en: "// recent checks" },
+  noReq:   { ru: "Запросов пока нет — таблица появится после первых обращений через шлюз.",
+             en: "No requests yet — the table appears after first gateway calls." },
+  noDaily: { ru: "Дневная статистика — только для ключей шлюза (sk-...).",
+             en: "Daily stats for gateway keys (sk-...) only." },
+  clear:   { ru: "[ очистить ]",           en: "[ clear ]" },
+  gateway: { ru: "ключ шлюза",            en: "gateway key" },
+  direct:  { ru: "прямой ключ",            en: "direct key" },
+  issued:  { ru: "выдано",                 en: "issued" },
+  noData:  { ru: "// пока пусто — проверь ключ выше",
+             en: "// empty yet — check a key above" },
 };
 const t = k => (T[k] && T[k][LANG]) || k;
+
 let LAST = null, DAYS = 7, MODEL = "";
-
 const fmt = n => (n == null ? 0 : n).toLocaleString(LANG === "en" ? "en-US" : "ru-RU");
-const C = 2 * Math.PI * 48;
+const C   = 2 * Math.PI * 48;
 
+// ── Typing effect ──
+(function typeWriter() {
+  const target = "balance --check";
+  const el = document.getElementById("typed");
+  let i = 0;
+  (function tick() {
+    if (i <= target.length) {
+      el.textContent = target.slice(0, i++);
+      setTimeout(tick, 55 + Math.random() * 50);
+    }
+  })();
+})();
+
+// ── Floating particles ──
+(function spawnParticles() {
+  const box = document.getElementById("particles");
+  for (let i = 0; i < 20; i++) {
+    const p = document.createElement("div");
+    p.className = "particle";
+    p.style.left             = Math.random() * 100 + "vw";
+    p.style.top              = (20 + Math.random() * 80) + "vh";
+    p.style.animationDelay   = (Math.random() * 6).toFixed(1) + "s";
+    p.style.animationDuration= (4 + Math.random() * 5).toFixed(1) + "s";
+    const sz = (1 + Math.random() * 2).toFixed(1) + "px";
+    p.style.width = p.style.height = sz;
+    box.appendChild(p);
+  }
+})();
+
+// ── Language ──
 function applyLang() {
   document.documentElement.lang = LANG;
   document.querySelectorAll("[data-ru]").forEach(el => {
-    el.textContent = LANG === "en" ? (el.getAttribute("data-en") || "") : (el.getAttribute("data-ru") || "");
+    el.textContent = LANG === "en"
+      ? (el.getAttribute("data-en") || "")
+      : (el.getAttribute("data-ru") || "");
   });
   document.getElementById("lang").textContent = LANG === "ru" ? "RU | EN" : "EN | RU";
   document.getElementById("go").textContent = t("go");
@@ -213,14 +451,18 @@ document.getElementById("lang").onclick = () => {
   applyLang();
 };
 
+// ── History ──
 function histRender() {
   let h = [];
   try { h = JSON.parse(localStorage.getItem("tw_hist") || "[]"); } catch (e) {}
   const box = document.getElementById("hist");
   if (!h.length) { box.innerHTML = ""; return; }
-  box.innerHTML = "<div class='sub'>" + t("hist") + "</div>" + h.map(x =>
-    `<div class="row"><code>${x.m}</code><span>${fmt(x.a)} / ${x.t}</span></div>`
-  ).join("") + `<button class="ghost" id="clr">${t("clear")}</button>`;
+  box.innerHTML =
+    "<div class='sub'>" + t("hist") + "</div>" +
+    h.map(x =>
+      `<div class="row"><code>${x.m}</code><span>${fmt(x.a)} / ${x.t}</span></div>`
+    ).join("") +
+    `<button class="ghost" id="clr">${t("clear")}</button>`;
   document.getElementById("clr").onclick = () => {
     try { localStorage.removeItem("tw_hist"); } catch (e) {}
     histRender();
@@ -229,68 +471,108 @@ function histRender() {
 function histAdd(m, a) {
   let h = [];
   try { h = JSON.parse(localStorage.getItem("tw_hist") || "[]"); } catch (e) {}
-  h.unshift({ m, a, t: new Date().toLocaleString(LANG === "en" ? "en-GB" : "ru-RU", {day:"2-digit",month:"2-digit",hour:"2-digit",minute:"2-digit"}) });
+  h.unshift({
+    m, a,
+    t: new Date().toLocaleString(
+      LANG === "en" ? "en-GB" : "ru-RU",
+      { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })
+  });
   try { localStorage.setItem("tw_hist", JSON.stringify(h.slice(0, 8))); } catch (e) {}
   histRender();
 }
 
+// ── Spend table (with staggered row animation) ──
 function renderSpend(d) {
   const rows = (d.kind === "sk" && d.recent && d.recent.length) ? d.recent : [];
-  document.getElementById("spendBody").innerHTML = rows.length ? rows.map(x =>
-    `<tr><td>${x.at.slice(5, 16)}</td><td>${x.model || "—"}</td><td>${fmt(x.prompt)}</td><td>${fmt(x.completion)}</td><td>${fmt(x.cost)}</td></tr>`
-  ).join("") : `<tr><td colspan="5" class="sub">${t("noReq")}</td></tr>`;
+  document.getElementById("spendBody").innerHTML = rows.length
+    ? rows.map((x, i) =>
+        `<tr style="animation-delay:${(i * .06).toFixed(2)}s">` +
+        `<td>${x.at.slice(5, 16)}</td><td>${x.model || "—"}</td>` +
+        `<td>${fmt(x.prompt)}</td><td>${fmt(x.completion)}</td>` +
+        `<td>${fmt(x.cost)}</td></tr>`
+      ).join("")
+    : `<tr><td colspan="5" class="sub">${t("noReq")}</td></tr>`;
   document.getElementById("reqCard").hidden = false;
 }
 
+// ── Bar chart (with grow-up + stagger) ──
 function renderBars(d) {
-  const box = document.getElementById("bars"), card = document.getElementById("expCard"),
+  const box  = document.getElementById("bars"),
+        card = document.getElementById("expCard"),
         note = document.getElementById("barsNote");
   const dd = (d.kind === "sk" && d.daily && d.daily.length) ? d.daily : [];
   card.hidden = false;
+
   if (!dd.length) {
     box.innerHTML = "";
     note.textContent = t("noDaily");
     document.getElementById("expTotal").textContent = "0";
     return;
   }
-  const mx = Math.max(1, ...dd.map(x => (x.prompt || 0) + (x.completion || 0)));
+
+  const mx  = Math.max(1, ...dd.map(x => (x.prompt || 0) + (x.completion || 0)));
   const tot = dd.reduce((s, x) => s + (x.tokens || 0), 0);
   document.getElementById("expTotal").textContent = fmt(tot);
-  box.innerHTML = dd.map(x => {
+
+  box.innerHTML = dd.map((x, i) => {
     const p = x.prompt || 0, c = x.completion || 0, s = p + c;
-    const h = Math.max(3, Math.round(s / mx * 140));
+    const h  = Math.max(3, Math.round(s / mx * 140));
     const hp = s ? Math.round(h * p / s) : 0;
     const dl = (x.day || "").slice(8, 10) + "." + (x.day || "").slice(5, 7);
-    const lbl = s >= 1e6 ? (s / 1e6).toFixed(1) + "M" : (s >= 1e3 ? Math.round(s / 1e3) + "K" : s);
-    return `<div class="bar"><div class="v">${lbl}</div>` +
-      `<div class="col" style="height:${h}px"><div class="in" style="height:${hp}px"></div>` +
-      `<div class="out" style="height:${h - hp}px"></div></div><div class="d">${dl}</div></div>`;
+    const lbl = s >= 1e6 ? (s / 1e6).toFixed(1) + "M"
+              : s >= 1e3 ? Math.round(s / 1e3) + "K"
+              : s;
+    const delay = (i * .09).toFixed(2);
+    return `<div class="bar" style="animation-delay:${delay}s">` +
+      `<div class="v">${lbl}</div>` +
+      `<div class="col" style="height:${h}px;animation-delay:${delay}s">` +
+        `<div class="in" style="height:${hp}px"></div>` +
+        `<div class="out" style="height:${h - hp}px"></div>` +
+      `</div>` +
+      `<div class="d">${dl}</div></div>`;
   }).join("");
 }
 
+// ── Render all ──
 function renderAll(d) {
   LAST = d;
   const total = d.total || 0, avail = d.available || 0;
   const leftPct = total > 0 ? Math.max(0, Math.min(100, avail / total * 100)) : 0;
-  document.getElementById("arc").setAttribute("stroke-dasharray", (C * leftPct / 100).toFixed(1) + " " + C.toFixed(1));
+
+  // donut — CSS transition animates the arc smoothly
+  document.getElementById("arc").setAttribute(
+    "stroke-dasharray",
+    (C * leftPct / 100).toFixed(1) + " " + C.toFixed(1));
   document.getElementById("pct").textContent = leftPct.toFixed(0) + "%";
-  document.getElementById("a").textContent = fmt(avail);
-  document.getElementById("p").textContent = fmt(d.spent);
+  document.getElementById("a").textContent   = fmt(avail);
+  document.getElementById("p").textContent   = fmt(d.spent);
+
   document.getElementById("meta").textContent =
-    (d.masked || "") + " | " + (d.kind === "sk" ? t("gateway") : t("direct")) +
-    " | " + t("issued") + ": " + fmt(total) + " | " + (d.status || "active");
-  document.getElementById("res").style.display = "block";
-  const sel = document.getElementById("modelSel");
-  const cur = MODEL;
+    (d.masked || "") + " | " +
+    (d.kind === "sk" ? t("gateway") : t("direct")) + " | " +
+    t("issued") + ": " + fmt(total) + " | " +
+    (d.status || "active");
+
+  const res = document.getElementById("res");
+  res.style.display = "block";
+  res.classList.add("show");
+
+  // model selector
+  const sel    = document.getElementById("modelSel");
+  const cur    = MODEL;
   const models = ["", ...((d.models && d.models.length) ? d.models : [])];
   sel.innerHTML = models.map(m =>
-    `<option value="${m}"${m === cur ? " selected" : ""}>${m || (LANG === "en" ? "All models" : "Все модели")}</option>`
+    `<option value="${m}"${m === cur ? " selected" : ""}>` +
+    `${m || (LANG === "en" ? "All models" : "Все модели")}</option>`
   ).join("");
+
   renderSpend(d);
   renderBars(d);
 }
 
+// ── Key check ──
 let CUR_KEY = "";
+
 async function reloadStats() {
   if (!CUR_KEY) return;
   try {
@@ -301,78 +583,121 @@ async function reloadStats() {
     renderAll(await r.json());
   } catch (e) {}
 }
+
 document.getElementById("modelSel").onchange = e => { MODEL = e.target.value; reloadStats(); };
-document.getElementById("d7").onclick = () => { DAYS = 7;
-  document.getElementById("d7").className = "chip on"; document.getElementById("d30").className = "chip";
-  reloadStats(); };
-document.getElementById("d30").onclick = () => { DAYS = 30;
-  document.getElementById("d30").className = "chip on"; document.getElementById("d7").className = "chip";
-  reloadStats(); };
+
+document.getElementById("d7").onclick = () => {
+  DAYS = 7;
+  document.getElementById("d7").className  = "chip on";
+  document.getElementById("d30").className = "chip";
+  reloadStats();
+};
+document.getElementById("d30").onclick = () => {
+  DAYS = 30;
+  document.getElementById("d30").className = "chip on";
+  document.getElementById("d7").className  = "chip";
+  reloadStats();
+};
+
+function avail0(d) { return d.available || 0; }
 
 document.getElementById("go").onclick = async () => {
-  const key = document.getElementById("key").value.trim();
-  const err = document.getElementById("err"), res = document.getElementById("res");
-  err.innerHTML = ""; res.style.display = "none";
+  const key   = document.getElementById("key").value.trim();
+  const errEl = document.getElementById("err");
+  const res   = document.getElementById("res");
+  const btn   = document.getElementById("go");
+
+  errEl.innerHTML = "";
+  res.style.display = "none";
+  res.classList.remove("show");
   CUR_KEY = "";
-  if (!key) { err.innerHTML = '<div class="err">' + t("needKey") + "</div>"; return; }
-  err.innerHTML = '<div class="sub">' + t("querying") + "</div>";
+
+  if (!key) {
+    errEl.innerHTML = '<div class="err">' + t("needKey") + "</div>";
+    return;
+  }
+
+  // loading state
+  btn.classList.add("loading");
+  errEl.innerHTML = '<div class="sub">' + t("querying") + "</div>";
+
   try {
-    const r = await fetch(API_BASE + "/api/check?key=" + encodeURIComponent(key) + "&days=" + DAYS);
+    const r = await fetch(
+      API_BASE + "/api/check?key=" + encodeURIComponent(key) + "&days=" + DAYS);
     if (!r.ok) throw new Error(r.status === 404 ? t("unknown") : "HTTP " + r.status);
     const d = await r.json();
-    err.innerHTML = "";
+    errEl.innerHTML = "";
     CUR_KEY = key;
-    MODEL = "";
+    MODEL   = "";
     renderAll(d);
     histAdd(d.masked || (key.slice(0, 8) + "…" + key.slice(-4)), avail0(d));
   } catch (e) {
-    err.innerHTML = '<div class="err">' + t("failed") + e.message + "</div>";
+    errEl.innerHTML = '<div class="err">' + t("failed") + e.message + "</div>";
     placeholders();
+  } finally {
+    btn.classList.remove("loading");
   }
 };
-function avail0(d) { return d.available || 0; }
-document.getElementById("key").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("go").click(); });
+
+document.getElementById("key").addEventListener("keydown", e => {
+  if (e.key === "Enter") document.getElementById("go").click();
+});
+
+// ── Placeholders ──
 function placeholders() {
   const emptyRow = `<tr><td>—</td><td>—</td><td>—</td><td>—</td><td>—</td></tr>`;
   document.getElementById("spendBody").innerHTML = emptyRow + emptyRow + emptyRow;
-  const box = document.getElementById("bars");
+
+  const box  = document.getElementById("bars");
   const days = [];
-  const now = new Date();
+  const now  = new Date();
   for (let i = 6; i >= 0; i--) {
     const d = new Date(now);
     d.setDate(now.getDate() - i);
     days.push(("0" + d.getDate()).slice(-2) + "." + ("0" + (d.getMonth() + 1)).slice(-2));
   }
-  box.innerHTML = days.map(dl =>
-    `<div class="bar"><div class="v">0</div><div class="col" style="height:3px"></div><div class="d">${dl}</div></div>`
-  ).join("");
+  box.innerHTML = days.map((dl, i) => {
+    const delay = (i * .09).toFixed(2);
+    return `<div class="bar" style="animation-delay:${delay}s">` +
+      `<div class="v">0</div>` +
+      `<div class="col" style="height:3px;animation-delay:${delay}s"></div>` +
+      `<div class="d">${dl}</div></div>`;
+  }).join("");
+
   document.getElementById("barsNote").textContent =
-    (LANG === "en" ? "// check a key above to fill the chart" : "// проверь ключ выше — тут появится расход");
+    LANG === "en"
+      ? "// check a key above to fill the chart"
+      : "// проверь ключ выше — тут появится расход";
   document.getElementById("expTotal").textContent = "0";
   document.getElementById("reqCard").hidden = false;
   document.getElementById("expCard").hidden = false;
 }
 placeholders();
+
+// ── Gateway URL ──
 document.querySelectorAll(".gw").forEach(el => { el.textContent = API_BASE; });
+
+// ── Server status ──
 async function srvCheck() {
-  const el = document.getElementById("srv");
-  const okTxt = { ru: "● сервер на связи", en: "● server online" };
+  const el     = document.getElementById("srv");
+  const okTxt  = { ru: "● сервер на связи",    en: "● server online" };
   const badTxt = { ru: "● сервер недоступен", en: "● server offline" };
   try {
     const ctl = new AbortController();
-    const to = setTimeout(() => ctl.abort(), 8000);
-    const r = await fetch(API_BASE + "/health", { signal: ctl.signal });
+    const to  = setTimeout(() => ctl.abort(), 8000);
+    const r   = await fetch(API_BASE + "/health", { signal: ctl.signal });
     clearTimeout(to);
     const ok = r.ok && (await r.text()).trim() === "ok";
-    el.textContent = ok ? okTxt[LANG] : badTxt[LANG];
-    el.style.color = ok ? "var(--grn)" : "var(--red)";
+    el.textContent      = ok ? okTxt[LANG] : badTxt[LANG];
+    el.style.color       = ok ? "var(--grn)" : "var(--red)";
     el.style.borderColor = ok ? "var(--grn)" : "var(--red)";
   } catch (e) {
-    el.textContent = badTxt[LANG];
-    el.style.color = "var(--red)";
+    el.textContent      = badTxt[LANG];
+    el.style.color       = "var(--red)";
     el.style.borderColor = "var(--red)";
   }
 }
+
 applyLang();
 srvCheck();
 setInterval(srvCheck, 60000);
