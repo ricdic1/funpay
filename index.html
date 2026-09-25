@@ -6,25 +6,33 @@
 <title>TokenWave // balance</title>
 <style>
   :root { --bg:#04070a; --panel:#0a120d; --line:#0f2a1a; --txt:#c9f5d8;
-          --dim:#5c7a68; --grn:#00ff88; --grn-dim:#0a5c36; --red:#ff5470; }
+          --dim:#5c7a68; --grn:#00ff88; --grn-dim:#0a5c36; --red:#ff5470; --pink:#ff9ecb; }
   * { box-sizing:border-box; }
   body { margin:0; background:radial-gradient(1000px 500px at 50% -10%, #07130c, var(--bg));
          color:var(--txt); font-family:ui-monospace,Consolas,"Cascadia Code",monospace; }
-  .wrap { max-width:480px; margin:0 auto; padding:6vh 18px 40px; }
+  .wrap { max-width:1060px; margin:0 auto; padding:6vh 18px 40px; }
+  .grid { display:grid; grid-template-columns:minmax(300px,420px) 1fr; gap:16px; align-items:start; }
+  @media (max-width:820px) { .grid { grid-template-columns:1fr; } }
+  .col-r { display:flex; flex-direction:column; gap:16px; min-width:0; }
   .term { background:var(--panel); border:1px solid var(--line); border-radius:12px;
           padding:20px; box-shadow:0 0 40px rgba(0,255,136,.07); }
   .prompt { color:var(--grn); }
   h1 { font-size:18px; margin:0 0 4px; color:var(--grn); text-shadow:0 0 12px rgba(0,255,136,.5); }
+  h2 { font-size:15px; margin:0 0 10px; color:var(--grn); }
   .sub { color:var(--dim); font-size:13px; }
-  input { width:100%; margin-top:14px; padding:12px; border-radius:8px;
+  input, select { width:100%; margin-top:12px; padding:12px; border-radius:8px;
           border:1px solid var(--line); background:#030805; color:var(--grn);
           font:inherit; outline:none; }
-  input:focus { border-color:var(--grn); box-shadow:0 0 0 1px var(--grn); }
+  input:focus, select:focus { border-color:var(--grn); }
+  select { width:auto; margin:0; padding:6px 10px; font-size:13px; }
   button { width:100%; margin-top:12px; padding:12px; border-radius:8px; border:0; cursor:pointer;
            background:var(--grn); color:#02120a; font:inherit; font-weight:700; }
   button:hover { filter:brightness(1.1); }
   .ghost { background:transparent; border:1px solid var(--line); color:var(--dim);
            font-size:12px; padding:6px 10px; width:auto; margin-top:10px; }
+  .chip { background:transparent; border:1px solid var(--line); color:var(--dim);
+          font-size:12px; padding:6px 12px; width:auto; margin:0; border-radius:999px; }
+  .chip.on { border-color:var(--red); color:var(--red); }
   .err { color:var(--red); font-size:13px; margin-top:10px; }
   .res { margin-top:16px; border-top:1px dashed var(--line); padding-top:16px; display:none; }
   .donut-wrap { display:flex; gap:16px; align-items:center; }
@@ -41,41 +49,39 @@
   summary { cursor:pointer; color:var(--grn); font-weight:700; }
   details pre { background:#030805; border:1px solid var(--line); border-radius:8px;
                 padding:10px; overflow-x:auto; font-size:12px; }
-  .slider { overflow:hidden; border-radius:8px; }
-  .track { display:flex; transition:transform .45s ease; }
-  .slide { min-width:100%; }
-  .nav { display:flex; gap:8px; align-items:center; margin-top:12px; }
-  .nav button { width:auto; margin:0; padding:6px 12px; font-size:13px; }
-  .dots { display:flex; gap:6px; margin-left:auto; }
-  .dot { width:8px; height:8px; border-radius:50%; background:var(--line); cursor:pointer; }
-  .dot.on { background:var(--grn); box-shadow:0 0 8px rgba(0,255,136,.8); }
-  table.spend { width:100%; border-collapse:collapse; font-size:12px; }
-  table.spend th, table.spend td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
-  table.spend th { color:var(--dim); font-weight:600; font-size:11px; text-transform:uppercase; }
-  .bars { display:flex; align-items:flex-end; gap:8px; height:150px; margin-top:12px; }
-  .bar { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
-  .bar .col { width:100%; max-width:38px; border-radius:6px 6px 0 0;
-              background:linear-gradient(180deg,var(--grn),var(--grn-dim));
-              box-shadow:0 0 12px rgba(0,255,136,.35); transition:height .5s ease; min-height:3px; }
-  .bar .d { font-size:11px; color:var(--dim); margin-top:6px; }
-  .bar .v { font-size:10px; color:var(--grn); margin-bottom:4px; }
   #lang { position:fixed; top:12px; right:12px; width:auto; margin:0; padding:8px 14px;
           font-size:13px; background:transparent; border:1px solid var(--grn); color:var(--grn); }
+  table.spend { width:100%; border-collapse:collapse; font-size:12px; }
+  table.spend th, table.spend td { text-align:left; padding:7px 8px; border-bottom:1px solid var(--line); white-space:nowrap; }
+  table.spend th { color:var(--dim); font-weight:600; font-size:11px; text-transform:uppercase; }
+  .scroll { overflow-x:auto; }
+  .bars { display:flex; align-items:flex-end; gap:10px; height:170px; margin-top:12px; }
+  .bar { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; min-width:0; }
+  .bar .col { width:100%; max-width:44px; border-radius:6px 6px 0 0; overflow:hidden;
+              display:flex; flex-direction:column; justify-content:flex-end; min-height:3px; }
+  .bar .in { background:var(--pink); opacity:.85; }
+  .bar .out { background:var(--red); }
+  .bar .d { font-size:11px; color:var(--dim); margin-top:6px; }
+  .bar .v { font-size:10px; color:var(--grn); margin-bottom:4px; }
+  .legend { display:flex; gap:14px; font-size:12px; color:var(--dim); margin-top:8px; }
+  .legend i { display:inline-block; width:10px; height:10px; border-radius:3px; margin-right:5px; }
+  .toolbar { display:flex; gap:8px; align-items:center; flex-wrap:wrap; margin-bottom:4px; }
+  .total { font-size:26px; color:var(--red); font-weight:700; text-shadow:0 0 14px rgba(255,84,112,.4); }
 </style>
 </head>
 <body>
 <button id="lang">RU | EN</button>
 <div id="srv" style="position:fixed;top:12px;left:12px;font-size:12px;padding:8px 14px;border-radius:8px;border:1px solid var(--line);background:var(--panel);color:var(--dim)">…</div>
 <div class="wrap">
-  <div class="term">
-    <h1><span class="prompt">root@tokenwave:~$</span> balance --check<span class="blink">_</span></h1>
-    <div class="sub" data-ru="// вставь свой ключ — покажем остаток, расход и диаграмму" data-en="// paste your key — we'll show balance, usage and chart"></div>
-    <input id="key" type="text" placeholder="sk-..." autocomplete="off" spellcheck="false">
-    <button id="go" data-ru="[ выполнить проверку ]" data-en="[ check balance ]"></button>
-    <div id="err"></div>
-    <div id="res" class="res">
-      <div class="slider"><div class="track" id="track">
-        <div class="slide"><div class="donut-wrap">
+  <div class="grid">
+    <div class="term">
+      <h1><span class="prompt">root@tokenwave:~$</span> balance --check<span class="blink">_</span></h1>
+      <div class="sub" data-ru="// вставь свой ключ — покажем остаток, расход и диаграмму" data-en="// paste your key — we'll show balance, usage and chart"></div>
+      <input id="key" type="text" placeholder="sk-..." autocomplete="off" spellcheck="false">
+      <button id="go" data-ru="[ выполнить проверку ]" data-en="[ check balance ]"></button>
+      <div id="err"></div>
+      <div id="res" class="res">
+        <div class="donut-wrap">
           <svg width="120" height="120" viewBox="0 0 120 120">
             <circle cx="60" cy="60" r="48" fill="none" stroke="#0f2a1a" stroke-width="12"/>
             <circle id="arc" cx="60" cy="60" r="48" fill="none" stroke="#00ff88" stroke-width="12"
@@ -87,25 +93,32 @@
             <div class="l" data-ru="осталось" data-en="left">–</div><div class="v" id="a">–</div>
             <div class="l" data-ru="потрачено" data-en="spent">–</div><div class="v" id="p" style="color:var(--txt)">–</div>
           </div>
-        </div></div>
-        <div class="slide"><table class="spend"><thead><tr>
+        </div>
+        <div class="meta" id="meta"></div>
+      </div>
+      <div class="hist" id="hist"></div>
+    </div>
+    <div class="col-r">
+      <div class="term" id="reqCard" hidden>
+        <h2 data-ru="Последние запросы" data-en="Recent requests">Последние запросы</h2>
+        <div class="scroll"><table class="spend"><thead><tr>
           <th data-ru="Время" data-en="Time">Время</th><th data-ru="Модель" data-en="Model">Модель</th>
           <th>Prompt</th><th>Compl.</th><th data-ru="Списано" data-en="Cost">Списано</th>
         </tr></thead><tbody id="spendBody"></tbody></table></div>
-      </div></div>
-      <div class="nav">
-        <button id="prev">‹</button><button id="next">›</button>
-        <div class="dots"><span class="dot on" id="dot0"></span><span class="dot" id="dot1"></span></div>
       </div>
-      <div class="meta" id="meta"></div>
-      <div id="reqs" class="hist" style="margin-top:12px;"></div>
+      <div class="term" id="expCard" hidden>
+        <h2><span data-ru="Расход" data-en="Spending">Расход</span></h2>
+        <div class="toolbar">
+          <select id="modelSel"></select>
+          <button class="chip on" id="d7">7д</button>
+          <button class="chip" id="d30">30д</button>
+        </div>
+        <div class="sub" data-ru="Потрачено токенов:" data-en="Tokens spent:"></div>
+        <div class="total" id="expTotal">0</div>
+        <div class="bars" id="bars"></div>
+        <div class="legend"><span><i style="background:var(--pink)"></i>Input</span><span><i style="background:var(--red)"></i>Output</span></div>
+      </div>
     </div>
-    <div class="hist" id="hist"></div>
-  </div>
-  <div class="term" style="margin-top:16px" id="statsCard" hidden>
-    <h1><span class="prompt">root@tokenwave:~$</span> <span data-ru="траты --7дней" data-en="spending --7d">траты</span></h1>
-    <div class="bars" id="bars"></div>
-    <div class="sub" id="barsNote" style="margin-top:8px"></div>
   </div>
   <div class="term" style="margin-top:16px">
     <h1><span class="prompt">root@tokenwave:~$</span> setup --guide</h1>
@@ -170,8 +183,13 @@ const T = {
   gateway: { ru: "ключ шлюза", en: "gateway key" },
   direct: { ru: "прямой ключ", en: "direct key" },
   issued: { ru: "выдано", en: "issued" },
+  noData: { ru: "// пока пусто — проверь ключ выше", en: "// empty yet — check a key above" },
 };
 const t = k => (T[k] && T[k][LANG]) || k;
+let LAST = null, DAYS = 7, MODEL = "";
+
+const fmt = n => (n == null ? 0 : n).toLocaleString(LANG === "en" ? "en-US" : "ru-RU");
+const C = 2 * Math.PI * 48;
 
 function applyLang() {
   document.documentElement.lang = LANG;
@@ -182,14 +200,12 @@ function applyLang() {
   document.getElementById("go").textContent = t("go");
   try { localStorage.setItem("tw_lang", LANG); } catch (e) {}
   histRender();
+  if (LAST) renderAll(LAST);
 }
 document.getElementById("lang").onclick = () => {
   LANG = LANG === "ru" ? "en" : "ru";
   applyLang();
 };
-
-const fmt = n => (n == null ? 0 : n).toLocaleString(LANG === "en" ? "en-US" : "ru-RU");
-const C = 2 * Math.PI * 48;
 
 function histRender() {
   let h = [];
@@ -212,78 +228,99 @@ function histAdd(m, a) {
   histRender();
 }
 
+function renderSpend(d) {
+  const rows = (d.kind === "sk" && d.recent && d.recent.length) ? d.recent : [];
+  document.getElementById("spendBody").innerHTML = rows.map(x =>
+    `<tr><td>${x.at.slice(5, 16)}</td><td>${x.model || "—"}</td><td>${fmt(x.prompt)}</td><td>${fmt(x.completion)}</td><td>${fmt(x.cost)}</td></tr>`
+  ).join("");
+  document.getElementById("reqCard").hidden = !rows.length;
+}
+
+function renderBars(d) {
+  const box = document.getElementById("bars"), card = document.getElementById("expCard");
+  const dd = (d.kind === "sk" && d.daily && d.daily.length) ? d.daily : [];
+  if (!dd.length) { card.hidden = true; box.innerHTML = ""; return; }
+  card.hidden = false;
+  const mx = Math.max(1, ...dd.map(x => (x.prompt || 0) + (x.completion || 0)));
+  const tot = dd.reduce((s, x) => s + (x.tokens || 0), 0);
+  document.getElementById("expTotal").textContent = fmt(tot);
+  box.innerHTML = dd.map(x => {
+    const p = x.prompt || 0, c = x.completion || 0, s = p + c;
+    const h = Math.max(3, Math.round(s / mx * 140));
+    const hp = s ? Math.round(h * p / s) : 0;
+    const dl = (x.day || "").slice(8, 10) + "." + (x.day || "").slice(5, 7);
+    const lbl = s >= 1e6 ? (s / 1e6).toFixed(1) + "M" : (s >= 1e3 ? Math.round(s / 1e3) + "K" : s);
+    return `<div class="bar"><div class="v">${lbl}</div>` +
+      `<div class="col" style="height:${h}px"><div class="in" style="height:${hp}px"></div>` +
+      `<div class="out" style="height:${h - hp}px"></div></div><div class="d">${dl}</div></div>`;
+  }).join("");
+}
+
+function renderAll(d) {
+  LAST = d;
+  const total = d.total || 0, avail = d.available || 0;
+  const leftPct = total > 0 ? Math.max(0, Math.min(100, avail / total * 100)) : 0;
+  document.getElementById("arc").setAttribute("stroke-dasharray", (C * leftPct / 100).toFixed(1) + " " + C.toFixed(1));
+  document.getElementById("pct").textContent = leftPct.toFixed(0) + "%";
+  document.getElementById("a").textContent = fmt(avail);
+  document.getElementById("p").textContent = fmt(d.spent);
+  document.getElementById("meta").textContent =
+    (d.masked || "") + " | " + (d.kind === "sk" ? t("gateway") : t("direct")) +
+    " | " + t("issued") + ": " + fmt(total) + " | " + (d.status || "active");
+  document.getElementById("res").style.display = "block";
+  const sel = document.getElementById("modelSel");
+  const cur = MODEL;
+  const models = ["", ...((d.models && d.models.length) ? d.models : [])];
+  sel.innerHTML = models.map(m =>
+    `<option value="${m}"${m === cur ? " selected" : ""}>${m || (LANG === "en" ? "All models" : "Все модели")}</option>`
+  ).join("");
+  renderSpend(d);
+  renderBars(d);
+}
+
+let CUR_KEY = "";
+async function reloadStats() {
+  if (!CUR_KEY) return;
+  try {
+    let url = API_BASE + "/api/check?key=" + encodeURIComponent(CUR_KEY) + "&days=" + DAYS;
+    if (MODEL) url += "&model=" + encodeURIComponent(MODEL);
+    const r = await fetch(url);
+    if (!r.ok) return;
+    renderAll(await r.json());
+  } catch (e) {}
+}
+document.getElementById("modelSel").onchange = e => { MODEL = e.target.value; reloadStats(); };
+document.getElementById("d7").onclick = () => { DAYS = 7;
+  document.getElementById("d7").className = "chip on"; document.getElementById("d30").className = "chip";
+  reloadStats(); };
+document.getElementById("d30").onclick = () => { DAYS = 30;
+  document.getElementById("d30").className = "chip on"; document.getElementById("d7").className = "chip";
+  reloadStats(); };
+
 document.getElementById("go").onclick = async () => {
   const key = document.getElementById("key").value.trim();
   const err = document.getElementById("err"), res = document.getElementById("res");
   err.innerHTML = ""; res.style.display = "none";
+  document.getElementById("reqCard").hidden = true;
+  document.getElementById("expCard").hidden = true;
+  CUR_KEY = "";
   if (!key) { err.innerHTML = '<div class="err">' + t("needKey") + "</div>"; return; }
   err.innerHTML = '<div class="sub">' + t("querying") + "</div>";
   try {
-    const r = await fetch(API_BASE + "/api/check?key=" + encodeURIComponent(key));
+    const r = await fetch(API_BASE + "/api/check?key=" + encodeURIComponent(key) + "&days=" + DAYS);
     if (!r.ok) throw new Error(r.status === 404 ? t("unknown") : "HTTP " + r.status);
     const d = await r.json();
     err.innerHTML = "";
-    const total = d.total || 0, avail = d.available || 0;
-    const leftPct = total > 0 ? Math.max(0, Math.min(100, avail / total * 100)) : 0;
-    document.getElementById("arc").setAttribute("stroke-dasharray", (C * leftPct / 100).toFixed(1) + " " + C.toFixed(1));
-    document.getElementById("pct").textContent = leftPct.toFixed(0) + "%";
-    document.getElementById("a").textContent = fmt(avail);
-    document.getElementById("p").textContent = fmt(d.spent);
-    document.getElementById("meta").textContent =
-      (d.masked || "") + " | " + (d.kind === "sk" ? t("gateway") : t("direct")) +
-      " | " + t("issued") + ": " + fmt(total) + " | " + (d.status || "active");
-    res.style.display = "block";
-    slideTo(0);
-    const rq = document.getElementById("reqs");
-    if (d.kind === "sk" && d.recent && d.recent.length) {
-      rq.innerHTML = "<div class='sub'>" + (LANG === "en" ? "// recent requests" : "// последние запросы") + "</div>" + d.recent.map(x =>
-        `<div class="row"><code>${x.at.slice(5, 16)} ${x.model || "—"}</code><span>${fmt(x.prompt)}+${fmt(x.completion)} = ${fmt(x.cost)}</span></div>`
-      ).join("");
-    } else { rq.innerHTML = ""; }
-    const sb = document.getElementById("spendBody"), sc = document.getElementById("statsCard");
-    if (d.kind === "sk" && d.recent && d.recent.length) {
-      sb.innerHTML = d.recent.map(x =>
-        `<tr><td>${x.at.slice(5, 16)}</td><td>${x.model || "—"}</td><td>${fmt(x.prompt)}</td><td>${fmt(x.completion)}</td><td>${fmt(x.cost)}</td></tr>`
-      ).join("");
-      sc.hidden = false;
-    } else {
-      sb.innerHTML = "";
-      sc.hidden = !(d.daily && d.daily.length);
-    }
-    const bars = document.getElementById("bars"), note = document.getElementById("barsNote");
-    const dd = (d.daily && d.daily.length) ? d.daily : [];
-    if (dd.length) {
-      const mx = Math.max(1, ...dd.map(x => x.tokens || 0));
-      bars.innerHTML = dd.map(x => {
-        const v = x.tokens || 0, h = Math.max(2, Math.round(v / mx * 130));
-        const dl = (x.day || "").slice(8, 10) + "." + (x.day || "").slice(5, 7);
-        const lbl = v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : (v >= 1e3 ? Math.round(v / 1e3) + "K" : v);
-        return `<div class="bar"><div class="v">${lbl}</div><div class="col" style="height:${h}px"></div><div class="d">${dl}</div></div>`;
-      }).join("");
-      note.textContent = LANG === "en" ? "// tokens per day, last 7 days" : "// токенов в день за 7 дней";
-      sc.hidden = false;
-    } else {
-      bars.innerHTML = "";
-      note.textContent = LANG === "en" ? "// daily stats available for gateway keys" : "// дневная статистика — только для ключей шлюза";
-      if (!(d.kind === "sk" && d.recent && d.recent.length)) sc.hidden = true;
-    }
-    histAdd(d.masked || (key.slice(0, 8) + "…" + key.slice(-4)), avail);
+    CUR_KEY = key;
+    MODEL = "";
+    renderAll(d);
+    histAdd(d.masked || (key.slice(0, 8) + "…" + key.slice(-4)), avail0(d));
   } catch (e) {
     err.innerHTML = '<div class="err">' + t("failed") + e.message + "</div>";
   }
 };
+function avail0(d) { return d.available || 0; }
 document.getElementById("key").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("go").click(); });
-let slideIdx = 0;
-function slideTo(i) {
-  slideIdx = (i + 2) % 2;
-  document.getElementById("track").style.transform = "translateX(-" + (slideIdx * 100) + "%)";
-  document.getElementById("dot0").className = "dot" + (slideIdx === 0 ? " on" : "");
-  document.getElementById("dot1").className = "dot" + (slideIdx === 1 ? " on" : "");
-}
-document.getElementById("prev").onclick = () => slideTo(slideIdx - 1);
-document.getElementById("next").onclick = () => slideTo(slideIdx + 1);
-document.getElementById("dot0").onclick = () => slideTo(0);
-document.getElementById("dot1").onclick = () => slideTo(1);
 document.querySelectorAll(".gw").forEach(el => { el.textContent = API_BASE; });
 async function srvCheck() {
   const el = document.getElementById("srv");
@@ -304,9 +341,8 @@ async function srvCheck() {
     el.style.borderColor = "var(--red)";
   }
 }
-const _origApplyLang = applyLang;
-applyLang = function() { _origApplyLang(); srvCheck(); };
 applyLang();
+srvCheck();
 setInterval(srvCheck, 60000);
 </script>
 </body>
