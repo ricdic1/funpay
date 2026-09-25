@@ -117,27 +117,13 @@
   @keyframes fadeIn { from { opacity:0; } to { opacity:1; } }
 
   /* ── donut ── */
-  .donut-wrap { display:flex; gap:16px; align-items:center; }
+  .donut-wrap { display:flex; flex-direction:column; align-items:center; gap:12px; }
   #arc { transition:stroke-dasharray .9s cubic-bezier(.4,0,.2,1); }
+  .nums { display:flex; gap:24px; justify-content:center; }
+  .nums .col { text-align:center; }
   .nums .v { font-size:22px; color:var(--grn); font-weight:700; }
-  .nums .l { font-size:12px; color:var(--dim); }
-  .meta { font-size:12px; color:var(--dim); margin-top:10px; }
-
-  /* ── forecast panel ── */
-  .forecast { margin-top:16px; border-top:1px dashed var(--line); padding-top:14px; display:none; }
-  .forecast.show { display:block; animation:fadeIn .5s ease-out; }
-  .forecast .fc-title { font-size:12px; color:var(--dim); margin-bottom:10px; }
-  .fc-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
-  .fc-item { background:#030805; border:1px solid var(--line); border-radius:8px; padding:10px 12px;
-             transition:border-color .3s; }
-  .fc-item:hover { border-color:var(--grn-dim); }
-  .fc-item .fc-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; }
-  .fc-item .fc-val { font-size:18px; font-weight:700; color:var(--grn); margin-top:2px; }
-  .fc-item .fc-val.warn { color:var(--red); }
-  .fc-item .fc-val.mid { color:#ffa644; }
-  .fc-bar { margin-top:10px; height:6px; border-radius:3px; background:var(--line); overflow:hidden; }
-  .fc-bar .fc-fill { height:100%; border-radius:3px; transition:width .8s cubic-bezier(.4,0,.2,1);
-                     background:linear-gradient(90deg, var(--red), var(--grn)); }
+  .nums .l { font-size:11px; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; }
+  .meta { font-size:12px; color:var(--dim); margin-top:10px; text-align:center; }
 
   /* ── blink cursor ── */
   .blink { animation:bl 1s steps(1) infinite; }
@@ -248,45 +234,26 @@
 
       <div id="res" class="res">
         <div class="donut-wrap">
-          <svg width="120" height="120" viewBox="0 0 120 120">
-            <circle cx="60" cy="60" r="48" fill="none" stroke="#0f2a1a" stroke-width="12"/>
-            <circle id="arc" cx="60" cy="60" r="48" fill="none" stroke="#00ff88" stroke-width="12"
-                    stroke-linecap="round" transform="rotate(-90 60 60)"
-                    stroke-dasharray="0 301.6" style="filter:drop-shadow(0 0 6px rgba(0,255,136,.7))"/>
-            <text id="pct" x="60" y="66" text-anchor="middle" fill="#00ff88"
-                  font-size="18" font-weight="bold">–</text>
+          <svg width="200" height="200" viewBox="0 0 200 200">
+            <circle cx="100" cy="100" r="80" fill="none" stroke="#0f2a1a" stroke-width="14"/>
+            <circle id="arc" cx="100" cy="100" r="80" fill="none" stroke="#00ff88" stroke-width="14"
+                    stroke-linecap="round" transform="rotate(-90 100 100)"
+                    stroke-dasharray="0 502.7" style="filter:drop-shadow(0 0 8px rgba(0,255,136,.7))"/>
+            <text id="pct" x="100" y="110" text-anchor="middle" fill="#00ff88"
+                  font-size="32" font-weight="bold">–</text>
           </svg>
           <div class="nums">
-            <div class="l" data-ru="осталось" data-en="left">–</div>
-            <div class="v" id="a">–</div>
-            <div class="l" data-ru="потрачено" data-en="spent">–</div>
-            <div class="v" id="p" style="color:var(--txt)">–</div>
+            <div class="col">
+              <div class="l" data-ru="осталось" data-en="left">–</div>
+              <div class="v" id="a">–</div>
+            </div>
+            <div class="col">
+              <div class="l" data-ru="потрачено" data-en="spent">–</div>
+              <div class="v" id="p" style="color:var(--txt)">–</div>
+            </div>
           </div>
         </div>
         <div class="meta" id="meta"></div>
-      </div>
-
-      <div class="forecast" id="forecast">
-        <div class="fc-title" data-ru="// прогноз использования" data-en="// usage forecast"></div>
-        <div class="fc-grid">
-          <div class="fc-item">
-            <div class="fc-label" data-ru="расход / день" data-en="burn / day"></div>
-            <div class="fc-val" id="fcBurn">–</div>
-          </div>
-          <div class="fc-item">
-            <div class="fc-label" data-ru="хватит на" data-en="lasts for"></div>
-            <div class="fc-val" id="fcDays">–</div>
-          </div>
-          <div class="fc-item">
-            <div class="fc-label" data-ru="использовано" data-en="used"></div>
-            <div class="fc-val" id="fcUsed">–</div>
-          </div>
-          <div class="fc-item">
-            <div class="fc-label" data-ru="закончится ≈" data-en="depletes ≈"></div>
-            <div class="fc-val" id="fcDate">–</div>
-          </div>
-        </div>
-        <div class="fc-bar"><div class="fc-fill" id="fcFill" style="width:0%"></div></div>
       </div>
     </div>
 
@@ -430,7 +397,7 @@ const t = k => (T[k] && T[k][LANG]) || k;
 
 let LAST = null, DAYS = 7, MODEL = "";
 const fmt = n => (n == null ? 0 : n).toLocaleString(LANG === "en" ? "en-US" : "ru-RU");
-const C   = 2 * Math.PI * 48;
+const C   = 2 * Math.PI * 80;
 
 // ── Typing effect ──
 (function typeWriter() {
@@ -479,61 +446,6 @@ document.getElementById("lang").onclick = () => {
   applyLang();
 };
 
-// ── Forecast panel ──
-function renderForecast(d) {
-  const fc = document.getElementById("forecast");
-  const total = d.total || 0, avail = d.available || 0, spent = d.spent || 0;
-  const daily = (d.kind === "sk" && d.daily && d.daily.length) ? d.daily : [];
-
-  // compute average daily burn from daily stats
-  let burnPerDay = 0;
-  if (daily.length > 0) {
-    const totalTokens = daily.reduce((s, x) => s + (x.tokens || 0), 0);
-    burnPerDay = Math.round(totalTokens / daily.length);
-  } else if (total > 0 && spent > 0) {
-    // fallback rough estimate: assume key is ~30 days old
-    burnPerDay = Math.round(spent / 30);
-  }
-
-  // days remaining
-  const daysLeft = burnPerDay > 0 ? Math.max(0, Math.round(avail / burnPerDay)) : null;
-
-  // percent used
-  const usedPct = total > 0 ? Math.min(100, Math.round(spent / total * 100)) : 0;
-
-  // depletion date
-  let dateStr = "∞";
-  if (daysLeft !== null && daysLeft < 9999) {
-    const dep = new Date();
-    dep.setDate(dep.getDate() + daysLeft);
-    dateStr = dep.toLocaleDateString(LANG === "en" ? "en-GB" : "ru-RU",
-      { day:"2-digit", month:"short" });
-  }
-
-  // burn label
-  const burnLbl = burnPerDay >= 1e6 ? (burnPerDay / 1e6).toFixed(1) + "M"
-                : burnPerDay >= 1e3 ? Math.round(burnPerDay / 1e3) + "K"
-                : fmt(burnPerDay);
-
-  // days label
-  const daysLbl = daysLeft === null
-    ? "∞"
-    : (LANG === "en" ? daysLeft + "d" : daysLeft + "д");
-
-  // color class for days
-  const daysCls = daysLeft !== null && daysLeft < 7 ? "warn" : (daysLeft !== null && daysLeft < 30 ? "mid" : "");
-
-  document.getElementById("fcBurn").textContent = burnLbl;
-  const fcDaysEl = document.getElementById("fcDays");
-  fcDaysEl.textContent = daysLbl;
-  fcDaysEl.className = "fc-val" + (daysCls ? " " + daysCls : "");
-  document.getElementById("fcUsed").textContent = usedPct + "%";
-  document.getElementById("fcDate").textContent = dateStr;
-  document.getElementById("fcDate").className = "fc-val" + (daysCls ? " " + daysCls : "");
-  document.getElementById("fcFill").style.width = (100 - usedPct) + "%";
-
-  fc.classList.add("show");
-}
 
 // ── Spend table (with staggered row animation) ──
 function renderSpend(d) {
@@ -622,7 +534,6 @@ function renderAll(d) {
 
   renderSpend(d);
   renderBars(d);
-  renderForecast(d);
 }
 
 // ── Key check ──
