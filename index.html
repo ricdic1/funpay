@@ -115,8 +115,9 @@
         </div>
         <div class="sub" data-ru="Потрачено токенов:" data-en="Tokens spent:"></div>
         <div class="total" id="expTotal">0</div>
-        <div class="bars" id="bars"></div>
-        <div class="legend"><span><i style="background:var(--pink)"></i>Input</span><span><i style="background:var(--red)"></i>Output</span></div>
+    <div class="bars" id="bars"></div>
+    <div class="sub" id="barsNote" style="margin-top:8px"></div>
+    <div class="legend"><span><i style="background:var(--pink)"></i>Input</span><span><i style="background:var(--red)"></i>Output</span></div>
       </div>
     </div>
   </div>
@@ -179,6 +180,8 @@ const T = {
   unknown: { ru: "ключ у нас не числится.", en: "unknown key." },
   failed: { ru: "[!] не получилось: ", en: "[!] failed: " },
   hist: { ru: "// последние проверки", en: "// recent checks" },
+  noReq: { ru: "Запросов пока нет — таблица появится после первых обращений через шлюз.", en: "No requests yet — the table appears after first gateway calls." },
+  noDaily: { ru: "Дневная статистика — только для ключей шлюза (sk-...).", en: "Daily stats for gateway keys (sk-...) only." },
   clear: { ru: "[ очистить ]", en: "[ clear ]" },
   gateway: { ru: "ключ шлюза", en: "gateway key" },
   direct: { ru: "прямой ключ", en: "direct key" },
@@ -230,17 +233,23 @@ function histAdd(m, a) {
 
 function renderSpend(d) {
   const rows = (d.kind === "sk" && d.recent && d.recent.length) ? d.recent : [];
-  document.getElementById("spendBody").innerHTML = rows.map(x =>
+  document.getElementById("spendBody").innerHTML = rows.length ? rows.map(x =>
     `<tr><td>${x.at.slice(5, 16)}</td><td>${x.model || "—"}</td><td>${fmt(x.prompt)}</td><td>${fmt(x.completion)}</td><td>${fmt(x.cost)}</td></tr>`
-  ).join("");
-  document.getElementById("reqCard").hidden = !rows.length;
+  ).join("") : `<tr><td colspan="5" class="sub">${t("noReq")}</td></tr>`;
+  document.getElementById("reqCard").hidden = false;
 }
 
 function renderBars(d) {
-  const box = document.getElementById("bars"), card = document.getElementById("expCard");
+  const box = document.getElementById("bars"), card = document.getElementById("expCard"),
+        note = document.getElementById("barsNote");
   const dd = (d.kind === "sk" && d.daily && d.daily.length) ? d.daily : [];
-  if (!dd.length) { card.hidden = true; box.innerHTML = ""; return; }
   card.hidden = false;
+  if (!dd.length) {
+    box.innerHTML = "";
+    note.textContent = t("noDaily");
+    document.getElementById("expTotal").textContent = "0";
+    return;
+  }
   const mx = Math.max(1, ...dd.map(x => (x.prompt || 0) + (x.completion || 0)));
   const tot = dd.reduce((s, x) => s + (x.tokens || 0), 0);
   document.getElementById("expTotal").textContent = fmt(tot);
