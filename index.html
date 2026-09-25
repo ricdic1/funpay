@@ -41,6 +41,24 @@
   summary { cursor:pointer; color:var(--grn); font-weight:700; }
   details pre { background:#030805; border:1px solid var(--line); border-radius:8px;
                 padding:10px; overflow-x:auto; font-size:12px; }
+  .slider { overflow:hidden; border-radius:8px; }
+  .track { display:flex; transition:transform .45s ease; }
+  .slide { min-width:100%; }
+  .nav { display:flex; gap:8px; align-items:center; margin-top:12px; }
+  .nav button { width:auto; margin:0; padding:6px 12px; font-size:13px; }
+  .dots { display:flex; gap:6px; margin-left:auto; }
+  .dot { width:8px; height:8px; border-radius:50%; background:var(--line); cursor:pointer; }
+  .dot.on { background:var(--grn); box-shadow:0 0 8px rgba(0,255,136,.8); }
+  table.spend { width:100%; border-collapse:collapse; font-size:12px; }
+  table.spend th, table.spend td { text-align:left; padding:6px 8px; border-bottom:1px solid var(--line); }
+  table.spend th { color:var(--dim); font-weight:600; font-size:11px; text-transform:uppercase; }
+  .bars { display:flex; align-items:flex-end; gap:8px; height:150px; margin-top:12px; }
+  .bar { flex:1; display:flex; flex-direction:column; align-items:center; justify-content:flex-end; height:100%; }
+  .bar .col { width:100%; max-width:38px; border-radius:6px 6px 0 0;
+              background:linear-gradient(180deg,var(--grn),var(--grn-dim));
+              box-shadow:0 0 12px rgba(0,255,136,.35); transition:height .5s ease; min-height:3px; }
+  .bar .d { font-size:11px; color:var(--dim); margin-top:6px; }
+  .bar .v { font-size:10px; color:var(--grn); margin-bottom:4px; }
   #lang { position:fixed; top:12px; right:12px; width:auto; margin:0; padding:8px 14px;
           font-size:13px; background:transparent; border:1px solid var(--grn); color:var(--grn); }
 </style>
@@ -56,23 +74,38 @@
     <button id="go" data-ru="[ выполнить проверку ]" data-en="[ check balance ]"></button>
     <div id="err"></div>
     <div id="res" class="res">
-      <div class="donut-wrap">
-        <svg width="120" height="120" viewBox="0 0 120 120">
-          <circle cx="60" cy="60" r="48" fill="none" stroke="#0f2a1a" stroke-width="12"/>
-          <circle id="arc" cx="60" cy="60" r="48" fill="none" stroke="#00ff88" stroke-width="12"
-                  stroke-linecap="round" transform="rotate(-90 60 60)"
-                  stroke-dasharray="0 301.6" style="filter:drop-shadow(0 0 6px rgba(0,255,136,.7))"/>
-          <text id="pct" x="60" y="66" text-anchor="middle" fill="#00ff88" font-size="18" font-weight="bold">–</text>
-        </svg>
-        <div class="nums">
-          <div class="l" data-ru="осталось" data-en="left">–</div><div class="v" id="a">–</div>
-          <div class="l" data-ru="потрачено" data-en="spent">–</div><div class="v" id="p" style="color:var(--txt)">–</div>
-        </div>
+      <div class="slider"><div class="track" id="track">
+        <div class="slide"><div class="donut-wrap">
+          <svg width="120" height="120" viewBox="0 0 120 120">
+            <circle cx="60" cy="60" r="48" fill="none" stroke="#0f2a1a" stroke-width="12"/>
+            <circle id="arc" cx="60" cy="60" r="48" fill="none" stroke="#00ff88" stroke-width="12"
+                    stroke-linecap="round" transform="rotate(-90 60 60)"
+                    stroke-dasharray="0 301.6" style="filter:drop-shadow(0 0 6px rgba(0,255,136,.7))"/>
+            <text id="pct" x="60" y="66" text-anchor="middle" fill="#00ff88" font-size="18" font-weight="bold">–</text>
+          </svg>
+          <div class="nums">
+            <div class="l" data-ru="осталось" data-en="left">–</div><div class="v" id="a">–</div>
+            <div class="l" data-ru="потрачено" data-en="spent">–</div><div class="v" id="p" style="color:var(--txt)">–</div>
+          </div>
+        </div></div>
+        <div class="slide"><table class="spend"><thead><tr>
+          <th data-ru="Время" data-en="Time">Время</th><th data-ru="Модель" data-en="Model">Модель</th>
+          <th>Prompt</th><th>Compl.</th><th data-ru="Списано" data-en="Cost">Списано</th>
+        </tr></thead><tbody id="spendBody"></tbody></table></div>
+      </div></div>
+      <div class="nav">
+        <button id="prev">‹</button><button id="next">›</button>
+        <div class="dots"><span class="dot on" id="dot0"></span><span class="dot" id="dot1"></span></div>
       </div>
       <div class="meta" id="meta"></div>
       <div id="reqs" class="hist" style="margin-top:12px;"></div>
     </div>
     <div class="hist" id="hist"></div>
+  </div>
+  <div class="term" style="margin-top:16px" id="statsCard" hidden>
+    <h1><span class="prompt">root@tokenwave:~$</span> <span data-ru="траты --7дней" data-en="spending --7d">траты</span></h1>
+    <div class="bars" id="bars"></div>
+    <div class="sub" id="barsNote" style="margin-top:8px"></div>
   </div>
   <div class="term" style="margin-top:16px">
     <h1><span class="prompt">root@tokenwave:~$</span> setup --guide</h1>
@@ -200,18 +233,57 @@ document.getElementById("go").onclick = async () => {
       (d.masked || "") + " | " + (d.kind === "sk" ? t("gateway") : t("direct")) +
       " | " + t("issued") + ": " + fmt(total) + " | " + (d.status || "active");
     res.style.display = "block";
+    slideTo(0);
     const rq = document.getElementById("reqs");
     if (d.kind === "sk" && d.recent && d.recent.length) {
-      rq.innerHTML = "<div class='sub'>// последние запросы</div>" + d.recent.map(x =>
+      rq.innerHTML = "<div class='sub'>" + (LANG === "en" ? "// recent requests" : "// последние запросы") + "</div>" + d.recent.map(x =>
         `<div class="row"><code>${x.at.slice(5, 16)} ${x.model || "—"}</code><span>${fmt(x.prompt)}+${fmt(x.completion)} = ${fmt(x.cost)}</span></div>`
       ).join("");
     } else { rq.innerHTML = ""; }
+    const sb = document.getElementById("spendBody"), sc = document.getElementById("statsCard");
+    if (d.kind === "sk" && d.recent && d.recent.length) {
+      sb.innerHTML = d.recent.map(x =>
+        `<tr><td>${x.at.slice(5, 16)}</td><td>${x.model || "—"}</td><td>${fmt(x.prompt)}</td><td>${fmt(x.completion)}</td><td>${fmt(x.cost)}</td></tr>`
+      ).join("");
+      sc.hidden = false;
+    } else {
+      sb.innerHTML = "";
+      sc.hidden = !(d.daily && d.daily.length);
+    }
+    const bars = document.getElementById("bars"), note = document.getElementById("barsNote");
+    const dd = (d.daily && d.daily.length) ? d.daily : [];
+    if (dd.length) {
+      const mx = Math.max(1, ...dd.map(x => x.tokens || 0));
+      bars.innerHTML = dd.map(x => {
+        const v = x.tokens || 0, h = Math.max(2, Math.round(v / mx * 130));
+        const dl = (x.day || "").slice(8, 10) + "." + (x.day || "").slice(5, 7);
+        const lbl = v >= 1e6 ? (v / 1e6).toFixed(1) + "M" : (v >= 1e3 ? Math.round(v / 1e3) + "K" : v);
+        return `<div class="bar"><div class="v">${lbl}</div><div class="col" style="height:${h}px"></div><div class="d">${dl}</div></div>`;
+      }).join("");
+      note.textContent = LANG === "en" ? "// tokens per day, last 7 days" : "// токенов в день за 7 дней";
+      sc.hidden = false;
+    } else {
+      bars.innerHTML = "";
+      note.textContent = LANG === "en" ? "// daily stats available for gateway keys" : "// дневная статистика — только для ключей шлюза";
+      if (!(d.kind === "sk" && d.recent && d.recent.length)) sc.hidden = true;
+    }
     histAdd(d.masked || (key.slice(0, 8) + "…" + key.slice(-4)), avail);
   } catch (e) {
     err.innerHTML = '<div class="err">' + t("failed") + e.message + "</div>";
   }
 };
 document.getElementById("key").addEventListener("keydown", e => { if (e.key === "Enter") document.getElementById("go").click(); });
+let slideIdx = 0;
+function slideTo(i) {
+  slideIdx = (i + 2) % 2;
+  document.getElementById("track").style.transform = "translateX(-" + (slideIdx * 100) + "%)";
+  document.getElementById("dot0").className = "dot" + (slideIdx === 0 ? " on" : "");
+  document.getElementById("dot1").className = "dot" + (slideIdx === 1 ? " on" : "");
+}
+document.getElementById("prev").onclick = () => slideTo(slideIdx - 1);
+document.getElementById("next").onclick = () => slideTo(slideIdx + 1);
+document.getElementById("dot0").onclick = () => slideTo(0);
+document.getElementById("dot1").onclick = () => slideTo(1);
 document.querySelectorAll(".gw").forEach(el => { el.textContent = API_BASE; });
 async function srvCheck() {
   const el = document.getElementById("srv");
