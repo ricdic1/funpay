@@ -70,6 +70,7 @@
         </div>
       </div>
       <div class="meta" id="meta"></div>
+      <div id="reqs" class="hist" style="margin-top:12px;"></div>
     </div>
     <div class="hist" id="hist"></div>
   </div>
@@ -199,6 +200,12 @@ document.getElementById("go").onclick = async () => {
       (d.masked || "") + " | " + (d.kind === "sk" ? t("gateway") : t("direct")) +
       " | " + t("issued") + ": " + fmt(total) + " | " + (d.status || "active");
     res.style.display = "block";
+    const rq = document.getElementById("reqs");
+    if (d.kind === "sk" && d.recent && d.recent.length) {
+      rq.innerHTML = "<div class='sub'>// последние запросы</div>" + d.recent.map(x =>
+        `<div class="row"><code>${x.at.slice(5, 16)} ${x.model || "—"}</code><span>${fmt(x.prompt)}+${fmt(x.completion)} = ${fmt(x.cost)}</span></div>`
+      ).join("");
+    } else { rq.innerHTML = ""; }
     histAdd(d.masked || (key.slice(0, 8) + "…" + key.slice(-4)), avail);
   } catch (e) {
     err.innerHTML = '<div class="err">' + t("failed") + e.message + "</div>";
