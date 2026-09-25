@@ -123,11 +123,21 @@
   .nums .l { font-size:12px; color:var(--dim); }
   .meta { font-size:12px; color:var(--dim); margin-top:10px; }
 
-  /* ── history ── */
-  .hist { margin-top:18px; font-size:13px; max-height:180px; overflow-y:auto; }
-  .hist .row { display:flex; justify-content:space-between; padding:5px 0;
-               border-bottom:1px dotted var(--line); font-size:12px; }
-  .hist code { color:var(--grn); }
+  /* ── forecast panel ── */
+  .forecast { margin-top:16px; border-top:1px dashed var(--line); padding-top:14px; display:none; }
+  .forecast.show { display:block; animation:fadeIn .5s ease-out; }
+  .forecast .fc-title { font-size:12px; color:var(--dim); margin-bottom:10px; }
+  .fc-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; }
+  .fc-item { background:#030805; border:1px solid var(--line); border-radius:8px; padding:10px 12px;
+             transition:border-color .3s; }
+  .fc-item:hover { border-color:var(--grn-dim); }
+  .fc-item .fc-label { font-size:10px; color:var(--dim); text-transform:uppercase; letter-spacing:.5px; }
+  .fc-item .fc-val { font-size:18px; font-weight:700; color:var(--grn); margin-top:2px; }
+  .fc-item .fc-val.warn { color:var(--red); }
+  .fc-item .fc-val.mid { color:#ffa644; }
+  .fc-bar { margin-top:10px; height:6px; border-radius:3px; background:var(--line); overflow:hidden; }
+  .fc-bar .fc-fill { height:100%; border-radius:3px; transition:width .8s cubic-bezier(.4,0,.2,1);
+                     background:linear-gradient(90deg, var(--red), var(--grn)); }
 
   /* ── blink cursor ── */
   .blink { animation:bl 1s steps(1) infinite; }
@@ -256,7 +266,28 @@
         <div class="meta" id="meta"></div>
       </div>
 
-      <div class="hist" id="hist"></div>
+      <div class="forecast" id="forecast">
+        <div class="fc-title" data-ru="// прогноз использования" data-en="// usage forecast"></div>
+        <div class="fc-grid">
+          <div class="fc-item">
+            <div class="fc-label" data-ru="расход / день" data-en="burn / day"></div>
+            <div class="fc-val" id="fcBurn">–</div>
+          </div>
+          <div class="fc-item">
+            <div class="fc-label" data-ru="хватит на" data-en="lasts for"></div>
+            <div class="fc-val" id="fcDays">–</div>
+          </div>
+          <div class="fc-item">
+            <div class="fc-label" data-ru="использовано" data-en="used"></div>
+            <div class="fc-val" id="fcUsed">–</div>
+          </div>
+          <div class="fc-item">
+            <div class="fc-label" data-ru="закончится ≈" data-en="depletes ≈"></div>
+            <div class="fc-val" id="fcDate">–</div>
+          </div>
+        </div>
+        <div class="fc-bar"><div class="fc-fill" id="fcFill" style="width:0%"></div></div>
+      </div>
     </div>
 
     <!-- ═══ RIGHT column ═══ -->
@@ -385,12 +416,10 @@ const T = {
   querying:{ ru: "[*] запрос к API...",    en: "[*] querying API..." },
   unknown: { ru: "ключ у нас не числится.",en: "unknown key." },
   failed:  { ru: "[!] не получилось: ",    en: "[!] failed: " },
-  hist:    { ru: "// последние проверки",  en: "// recent checks" },
   noReq:   { ru: "Запросов пока нет — таблица появится после первых обращений через шлюз.",
              en: "No requests yet — the table appears after first gateway calls." },
   noDaily: { ru: "Дневная статистика — только для ключей шлюза (sk-...).",
              en: "Daily stats for gateway keys (sk-...) only." },
-  clear:   { ru: "[ очистить ]",           en: "[ clear ]" },
   gateway: { ru: "ключ шлюза",            en: "gateway key" },
   direct:  { ru: "прямой ключ",            en: "direct key" },
   issued:  { ru: "выдано",                 en: "issued" },
@@ -443,7 +472,6 @@ function applyLang() {
   document.getElementById("lang").textContent = LANG === "ru" ? "RU | EN" : "EN | RU";
   document.getElementById("go").textContent = t("go");
   try { localStorage.setItem("tw_lang", LANG); } catch (e) {}
-  histRender();
   if (LAST) renderAll(LAST);
 }
 document.getElementById("lang").onclick = () => {
@@ -451,34 +479,60 @@ document.getElementById("lang").onclick = () => {
   applyLang();
 };
 
-// ── History ──
-function histRender() {
-  let h = [];
-  try { h = JSON.parse(localStorage.getItem("tw_hist") || "[]"); } catch (e) {}
-  const box = document.getElementById("hist");
-  if (!h.length) { box.innerHTML = ""; return; }
-  box.innerHTML =
-    "<div class='sub'>" + t("hist") + "</div>" +
-    h.map(x =>
-      `<div class="row"><code>${x.m}</code><span>${fmt(x.a)} / ${x.t}</span></div>`
-    ).join("") +
-    `<button class="ghost" id="clr">${t("clear")}</button>`;
-  document.getElementById("clr").onclick = () => {
-    try { localStorage.removeItem("tw_hist"); } catch (e) {}
-    histRender();
-  };
-}
-function histAdd(m, a) {
-  let h = [];
-  try { h = JSON.parse(localStorage.getItem("tw_hist") || "[]"); } catch (e) {}
-  h.unshift({
-    m, a,
-    t: new Date().toLocaleString(
-      LANG === "en" ? "en-GB" : "ru-RU",
-      { day:"2-digit", month:"2-digit", hour:"2-digit", minute:"2-digit" })
-  });
-  try { localStorage.setItem("tw_hist", JSON.stringify(h.slice(0, 4))); } catch (e) {}
-  histRender();
+// ── Forecast panel ──
+function renderForecast(d) {
+  const fc = document.getElementById("forecast");
+  const total = d.total || 0, avail = d.available || 0, spent = d.spent || 0;
+  const daily = (d.kind === "sk" && d.daily && d.daily.length) ? d.daily : [];
+
+  // compute average daily burn from daily stats
+  let burnPerDay = 0;
+  if (daily.length > 0) {
+    const totalTokens = daily.reduce((s, x) => s + (x.tokens || 0), 0);
+    burnPerDay = Math.round(totalTokens / daily.length);
+  } else if (total > 0 && spent > 0) {
+    // fallback rough estimate: assume key is ~30 days old
+    burnPerDay = Math.round(spent / 30);
+  }
+
+  // days remaining
+  const daysLeft = burnPerDay > 0 ? Math.max(0, Math.round(avail / burnPerDay)) : null;
+
+  // percent used
+  const usedPct = total > 0 ? Math.min(100, Math.round(spent / total * 100)) : 0;
+
+  // depletion date
+  let dateStr = "∞";
+  if (daysLeft !== null && daysLeft < 9999) {
+    const dep = new Date();
+    dep.setDate(dep.getDate() + daysLeft);
+    dateStr = dep.toLocaleDateString(LANG === "en" ? "en-GB" : "ru-RU",
+      { day:"2-digit", month:"short" });
+  }
+
+  // burn label
+  const burnLbl = burnPerDay >= 1e6 ? (burnPerDay / 1e6).toFixed(1) + "M"
+                : burnPerDay >= 1e3 ? Math.round(burnPerDay / 1e3) + "K"
+                : fmt(burnPerDay);
+
+  // days label
+  const daysLbl = daysLeft === null
+    ? "∞"
+    : (LANG === "en" ? daysLeft + "d" : daysLeft + "д");
+
+  // color class for days
+  const daysCls = daysLeft !== null && daysLeft < 7 ? "warn" : (daysLeft !== null && daysLeft < 30 ? "mid" : "");
+
+  document.getElementById("fcBurn").textContent = burnLbl;
+  const fcDaysEl = document.getElementById("fcDays");
+  fcDaysEl.textContent = daysLbl;
+  fcDaysEl.className = "fc-val" + (daysCls ? " " + daysCls : "");
+  document.getElementById("fcUsed").textContent = usedPct + "%";
+  document.getElementById("fcDate").textContent = dateStr;
+  document.getElementById("fcDate").className = "fc-val" + (daysCls ? " " + daysCls : "");
+  document.getElementById("fcFill").style.width = (100 - usedPct) + "%";
+
+  fc.classList.add("show");
 }
 
 // ── Spend table (with staggered row animation) ──
@@ -568,6 +622,7 @@ function renderAll(d) {
 
   renderSpend(d);
   renderBars(d);
+  renderForecast(d);
 }
 
 // ── Key check ──
@@ -599,8 +654,6 @@ document.getElementById("d30").onclick = () => {
   reloadStats();
 };
 
-function avail0(d) { return d.available || 0; }
-
 document.getElementById("go").onclick = async () => {
   const key   = document.getElementById("key").value.trim();
   const errEl = document.getElementById("err");
@@ -630,7 +683,6 @@ document.getElementById("go").onclick = async () => {
     CUR_KEY = key;
     MODEL   = "";
     renderAll(d);
-    histAdd(d.masked || (key.slice(0, 8) + "…" + key.slice(-4)), avail0(d));
   } catch (e) {
     errEl.innerHTML = '<div class="err">' + t("failed") + e.message + "</div>";
     placeholders();
