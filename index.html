@@ -196,6 +196,36 @@
   .total    { font-size:26px; color:var(--red); font-weight:700;
               text-shadow:0 0 14px rgba(255,84,112,.4); transition:color .3s; }
 
+  /* ── how: steps / apps / faq ── */
+  .steps { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:12px; }
+  @media (max-width:820px) { .steps { grid-template-columns:1fr; } }
+  .step { border:1px solid var(--line); border-radius:8px; padding:12px; background:#030805; }
+  .step .n { color:var(--grn); font-weight:700; font-size:16px; }
+  .step p { margin:6px 0 0; font-size:12px; color:var(--txt); }
+  .apps { display:flex; flex-wrap:wrap; gap:8px; margin-top:12px; }
+  .appbtn {
+    background:transparent; border:1px solid var(--line); color:var(--dim);
+    font-size:12px; padding:8px 14px; width:auto; margin:0; border-radius:8px;
+    transition:border-color .3s, color .3s;
+  }
+  .appbtn:hover { transform:none; box-shadow:none; border-color:var(--grn); color:var(--grn); }
+  .appbtn.on { border-color:var(--grn); color:var(--grn); background:rgba(0,255,136,.06); }
+  .appdetail { display:none; margin-top:12px; border:1px solid var(--line);
+               border-radius:8px; padding:14px; background:#030805; }
+  .appdetail.on { display:block; animation:fadeIn .4s ease-out; }
+  .appdetail h3 { margin:0 0 8px; font-size:14px; color:var(--grn); }
+  .appdetail ol { margin:8px 0; padding-left:20px; font-size:12px; }
+  .appdetail ol li { margin:5px 0; }
+  .appdetail code, .kv code { color:var(--grn); font-size:12px; word-break:break-all; }
+  .kv { font-size:12px; margin:6px 0; }
+  .copybtn {
+    background:transparent; border:1px dashed var(--grn-dim); color:var(--grn);
+    font-size:11px; padding:4px 10px; width:auto; margin:0 0 0 8px; border-radius:6px;
+  }
+  .copybtn:hover { transform:none; box-shadow:none; border-style:solid; }
+  .warn { border-color:var(--red); }
+  .warn summary { color:var(--red); }
+
   /* ── floating particles ── */
   .particle {
     position:fixed; width:2px; height:2px; border-radius:50%;
@@ -297,46 +327,130 @@
     </div><!-- /col-r -->
   </div><!-- /grid -->
 
-  <!-- ═══ SETUP GUIDE ═══ -->
-  <div class="term" style="margin-top:16px">
-    <h1><span class="prompt">root@tokenwave:~$</span> setup --guide</h1>
+  <!-- ═══ HOW ═══ -->
+  <div class="term" id="how" style="margin-top:16px">
+    <h1><span class="prompt">root@tokenwave:~$</span>
+      <span data-ru="как подключить" data-en="how to connect">как подключить</span></h1>
     <div class="sub"
-         data-ru="// твой ключ: sk-... // модели: deepseek-v4-flash, minimax-m2.7"
-         data-en="// your key: sk-... // models: deepseek-v4-flash, minimax-m2.7"></div>
+          data-ru="// один ключ — все модели. оплата за объём, без подписки"
+          data-en="// one key — all models. pay for volume, no subscription"></div>
+
+    <div class="steps">
+      <div class="step"><div class="n">01</div>
+        <p data-ru="Купи лот на FunPay: 100M–1B, один лот = один ключ на весь номинал."
+           data-en="Buy a lot on FunPay: 100M–1B, one lot = one key for the full amount."></p></div>
+      <div class="step"><div class="n">02</div>
+        <p data-ru="Ключ придёт в чат заказа за пару минут, круглосуточно."
+           data-en="The key arrives in the order chat within minutes, 24/7."></p></div>
+      <div class="step"><div class="n">03</div>
+        <p data-ru="Вставь 2 поля в программу: Base URL и ключ. Код трогать не нужно."
+           data-en="Paste 2 fields into your app: Base URL and key. No code changes needed."></p></div>
+    </div>
+
     <div class="meta" style="font-size:13px">
-      <p><span class="prompt">base-url:</span> <code class="gw">…</code><code>/v1</code></p>
+      <p class="kv"><span class="prompt">base-url:</span> <code class="gw">…</code><code>/v1</code>
+        <button class="copybtn" data-copy="base">copy</button><br>
+        <span class="sub" data-ru="// модели: deepseek-v4-flash, minimax-m2.7 — имя вписывай как здесь"
+              data-en="// models: deepseek-v4-flash, minimax-m2.7 — spell the name exactly"></span></p>
 
-      <details>
-        <summary data-ru="[+] opencode" data-en="[+] opencode">[+] opencode</summary>
-        <p data-ru="В конфиг добавь кастомного провайдера:" data-en="Add a custom provider to config:"></p>
-        <pre>baseURL = <span class="gw">…</span>/v1
-apiKey = sk-... <span class="tr" data-ru="(твой ключ)" data-en="(your key)"></span>
-model = deepseek-v4-flash</pre>
-        <p class="sub" data-ru='// "code is invalid" = ключ вставлен не в то поле: нужен apiKey кастомного провайдера.'
-                        data-en='// "code is invalid" = key pasted into the wrong field: use the custom provider apiKey.'></p>
-      </details>
+      <div class="apps" id="appBtns">
+        <button class="appbtn on" data-app="codex">Codex</button>
+        <button class="appbtn" data-app="cursor">Cursor</button>
+        <button class="appbtn" data-app="cline">Cline · Roo · Kilo</button>
+        <button class="appbtn" data-app="opencode">OpenCode</button>
+        <button class="appbtn" data-app="continue">Continue</button>
+        <button class="appbtn" data-app="aider">aider</button>
+        <button class="appbtn" data-app="chatbox">Chatbox · LibreChat</button>
+        <button class="appbtn" data-app="claude">Claude Code</button>
+        <button class="appbtn" data-app="python">python</button>
+        <button class="appbtn" data-app="curl">curl</button>
+      </div>
 
-      <details>
-        <summary data-ru="[+] vscode / cursor" data-en="[+] vscode / cursor">[+] vscode / cursor</summary>
-        <p>
-          <span data-ru="Settings → Models → Custom / OpenAI-compatible → вставь Base URL и свой ключ "
-                data-en="Settings → Models → Custom / OpenAI-compatible → paste Base URL and your "></span>
-          <code>sk-...</code>, модель <code>deepseek-v4-flash</code>.
-        </p>
-      </details>
+      <div class="appdetail on" id="app-codex">
+        <h3>Codex</h3>
+        <ol>
+          <li><span data-ru="В " data-en="In "></span><code>~/.codex/config.toml</code>
+            <span data-ru=" добавь провайдера:" data-en=" add a provider:"></span>
+            <button class="copybtn" data-copy="codex">copy</button></li>
+          <li><span data-ru="Ключ положи в переменную " data-en="Put the key into "></span><code>TOKENWAVE_API_KEY</code>.</li>
+          <li><span data-ru="Файл " data-en="Remove "></span><code>auth.json</code>
+            <span data-ru=" от входа через ChatGPT убери — иначе Codex пойдёт мимо шлюза."
+                  data-en=" from ChatGPT login — otherwise Codex bypasses the gateway."></span></li>
+        </ol>
+      </div>
 
-      <details>
-        <summary data-ru="[+] open webui / librechat / sillytavern"
-                 data-en="[+] open webui / librechat / sillytavern">[+] open webui / librechat / sillytavern</summary>
-        <p>
-          <span data-ru="Подключение → OpenAI-совместимый сервер → Base URL как выше, ключ "
-                data-en="Connection → OpenAI-compatible server → Base URL as above, key "></span>
-          <code>sk-...</code>.
-        </p>
-      </details>
+      <div class="appdetail" id="app-cursor">
+        <h3>Cursor</h3>
+        <ol>
+          <li><span data-ru="Settings → Models → OpenAI API Key — вставь свой " data-en="Settings → Models → OpenAI API Key — paste your "></span><code>sk-...</code>.</li>
+          <li><span data-ru="Включи Override Base URL и укажи " data-en="Enable Override Base URL and set "></span><code class="gw">…</code><code>/v1</code>
+            <button class="copybtn" data-copy="base">copy</button></li>
+          <li><span data-ru="Модель: " data-en="Model: "></span><code>deepseek-v4-flash</code>
+            <span data-ru=" (чат; автодополнение идёт через серверы Cursor и наш ключ не видит)."
+                  data-en=" (chat; autocomplete runs via Cursor servers and can't use our key)."></span></li>
+        </ol>
+      </div>
 
-      <details>
-        <summary data-ru="[+] python" data-en="[+] python">[+] python</summary>
+      <div class="appdetail" id="app-cline">
+        <h3>Cline · Roo · Kilo</h3>
+        <ol>
+          <li><span data-ru="Провайдер API: " data-en="API Provider: "></span><code>OpenAI Compatible</code>.</li>
+          <li><span data-ru="Base URL: " data-en="Base URL: "></span><code class="gw">…</code><code>/v1</code>
+            <button class="copybtn" data-copy="base">copy</button><span data-ru=", ключ " data-en=", key "></span><code>sk-...</code>.</li>
+          <li><span data-ru="Модель впиши вручную: " data-en="Type the model manually: "></span><code>deepseek-v4-flash</code>
+            <span data-ru=" или " data-en=" or "></span><code>minimax-m2.7</code>.</li>
+        </ol>
+      </div>
+
+      <div class="appdetail" id="app-opencode">
+        <h3>OpenCode</h3>
+        <ol>
+          <li><span data-ru="В " data-en="In "></span><code>opencode.json</code>
+            <span data-ru=" добавь кастомного провайдера:" data-en=" add a custom provider:"></span>
+            <button class="copybtn" data-copy="opencode">copy</button></li>
+          <li><span data-ru="Модель запуска: " data-en="Run with: "></span><code>opencode run --model tokenwave/deepseek-v4-flash</code>.</li>
+        </ol>
+      </div>
+
+      <div class="appdetail" id="app-continue">
+        <h3>Continue</h3>
+        <ol>
+          <li><span data-ru="В " data-en="In "></span><code>~/.continue/config.yaml</code>
+            <span data-ru=" добавь модель:" data-en=" add a model:"></span>
+            <button class="copybtn" data-copy="continue">copy</button></li>
+        </ol>
+      </div>
+
+      <div class="appdetail" id="app-aider">
+        <h3>aider</h3>
+        <ol>
+          <li><button class="copybtn" data-copy="aider">copy</button>
+            <span data-ru=" — запуск с нашим шлюзом:" data-en=" — run via our gateway:"></span></li>
+        </ol>
+        <pre>aider --openai-api-base <span class="gw">…</span>/v1 \
+  --openai-api-key sk-... \
+  --model openai/deepseek-v4-flash</pre>
+      </div>
+
+      <div class="appdetail" id="app-chatbox">
+        <h3>Chatbox · LibreChat · Open WebUI</h3>
+        <ol>
+          <li><span data-ru="Провайдер: " data-en="Provider: "></span><code>OpenAI API</code>.</li>
+          <li><span data-ru="API Host / Base URL: " data-en="API Host / Base URL: "></span><code class="gw">…</code><code>/v1</code>
+            <button class="copybtn" data-copy="base">copy</button><span data-ru=", ключ " data-en=", key "></span><code>sk-...</code>.</li>
+          <li><span data-ru="Модель: " data-en="Model: "></span><code>deepseek-v4-flash</code>
+            <span data-ru=" или " data-en=" or "></span><code>minimax-m2.7</code>.</li>
+        </ol>
+      </div>
+
+      <div class="appdetail" id="app-claude">
+        <h3>Claude Code</h3>
+        <p class="kv" data-ru="Claude Code говорит только на Anthropic-протоколе — наш шлюз его не отдаёт (только OpenAI-совместимый /v1). Те же модели заведутся в OpenCode, Cline или Codex с тем же ключом."
+           data-en="Claude Code only speaks the Anthropic protocol — our gateway serves OpenAI-compatible /v1 only. The same models work in OpenCode, Cline or Codex with the same key."></p>
+      </div>
+
+      <div class="appdetail" id="app-python">
+        <h3>python</h3>
         <pre>from openai import OpenAI
 client = OpenAI(api_key="sk-...",
     base_url="<span class="gw">…</span>/v1")
@@ -344,15 +458,43 @@ r = client.chat.completions.create(
     model="deepseek-v4-flash",
     messages=[{"role": "user", "content": "Hi!"}])
 print(r.choices[0].message.content)</pre>
-      </details>
+        <button class="copybtn" data-copy="python">copy</button>
+      </div>
 
-      <details>
-        <summary data-ru="[+] curl" data-en="[+] curl">[+] curl</summary>
+      <div class="appdetail" id="app-curl">
+        <h3>curl</h3>
         <pre>curl <span class="gw">…</span>/v1/chat/completions \
  -H "Authorization: Bearer sk-..." \
  -H "Content-Type: application/json" \
  -d '{"model":"deepseek-v4-flash",
  "messages":[{"role":"user","content":"Hi!"}]}'</pre>
+        <button class="copybtn" data-copy="curl">copy</button>
+      </div>
+
+      <details>
+        <summary data-ru="[?] 401 / Invalid token" data-en="[?] 401 / Invalid token">[?] 401 / Invalid token</summary>
+        <p class="kv" data-ru="Три причины: ключ вставлен не целиком; ключ во «встроенном» провайдере (OpenAI/DeepSeek) вместо «OpenAI Compatible» с нашим адресом; баланс потрачен — проверь остаток выше."
+           data-en="Three causes: key pasted partially; key in a built-in provider (OpenAI/DeepSeek) instead of “OpenAI Compatible” with our address; balance spent — check it above."></p>
+      </details>
+      <details>
+        <summary data-ru="[?] токены ушли быстро" data-en="[?] tokens drained fast">[?] tokens drained fast</summary>
+        <p class="kv" data-ru="Списание = токены вопроса + ответа, умноженные на множитель модели. Агент с большим контекстом съедает мелкий пакет за минуты. Помогает: новая сессия на задачу, лимит ответа 4–8K, пакет покрупнее. Каждый запрос виден выше в таблице."
+           data-en="Charge = prompt + completion tokens times the model multiplier. An agent with huge context eats a small pack in minutes. Helps: fresh session per task, 4–8K reply limit, bigger pack. Every request is listed above."></p>
+      </details>
+      <details>
+        <summary data-ru="[?] пустой ответ" data-en="[?] empty reply">[?] empty reply</summary>
+        <p class="kv" data-ru="Подними лимит ответа: DeepSeek — от 4000 токенов. Если не помогло — напиши в чат заказа."
+           data-en="Raise the reply limit: DeepSeek — from 4000 tokens. Still stuck — message the order chat."></p>
+      </details>
+      <details>
+        <summary data-ru="[?] бонус за отзыв" data-en="[?] review bonus">[?] review bonus</summary>
+        <p class="kv" data-ru="Отзыв 5 звёзд к заказу = +20% токенов на тот же ключ, обычно за пару минут."
+           data-en="A 5-star order review = +20% tokens onto the same key, usually within minutes."></p>
+      </details>
+      <details>
+        <summary data-ru="[?] возврат и поддержка" data-en="[?] refunds & support">[?] refunds & support</summary>
+        <p class="kv" data-ru="Ключ не заработал по нашей вине — вернём целиком. Потраченные токены не возвращаются. Поддержка — в переписке заказа на FunPay."
+           data-en="Key dead on arrival through our fault — full refund. Spent tokens are non-refundable. Support lives in the FunPay order chat."></p>
       </details>
     </div>
   </div>
@@ -636,6 +778,39 @@ function placeholders() {
   document.getElementById("expCard").hidden = false;
 }
 placeholders();
+
+// ── How: app tabs ──
+document.getElementById("appBtns").addEventListener("click", e => {
+  const b = e.target.closest("[data-app]");
+  if (!b) return;
+  document.querySelectorAll("#appBtns .appbtn").forEach(x =>
+    x.classList.toggle("on", x === b));
+  document.querySelectorAll(".appdetail").forEach(x =>
+    x.classList.toggle("on", x.id === "app-" + b.dataset.app));
+});
+
+// ── How: copy buttons ──
+const SNIPPETS = {
+  base:     () => API_BASE + "/v1",
+  codex:    () => 'model = "deepseek-v4-flash"\nmodel_provider = "tokenwave"\n\n[model_providers.tokenwave]\nname = "TokenWave"\nbase_url = "' + API_BASE + '/v1"\nenv_key = "TOKENWAVE_API_KEY"\nwire_api = "responses"',
+  opencode: () => '{\n  "provider": {\n    "tokenwave": {\n      "npm": "@ai-sdk/openai-compatible",\n      "name": "TokenWave",\n      "options": { "baseURL": "' + API_BASE + '/v1", "apiKey": "sk-..." },\n      "models": { "deepseek-v4-flash": { "name": "DeepSeek Flash" } }\n    }\n  }\n}',
+  "continue": () => 'models:\n  - name: TokenWave DeepSeek\n    provider: openai\n    model: deepseek-v4-flash\n    apiKey: sk-...\n    apiBase: ' + API_BASE + '/v1',
+  aider:    () => "aider --openai-api-base " + API_BASE + "/v1 --openai-api-key sk-... --model openai/deepseek-v4-flash",
+  python:   () => 'from openai import OpenAI\nclient = OpenAI(api_key="sk-...",\n    base_url="' + API_BASE + '/v1")\nr = client.chat.completions.create(\n    model="deepseek-v4-flash",\n    messages=[{"role": "user", "content": "Hi!"}])\nprint(r.choices[0].message.content)',
+  curl:     () => 'curl ' + API_BASE + '/v1/chat/completions -H "Authorization: Bearer sk-..." -H "Content-Type: application/json" -d \'{"model":"deepseek-v4-flash","messages":[{"role":"user","content":"Hi!"}]}\'',
+};
+document.querySelectorAll("[data-copy]").forEach(btn => {
+  btn.addEventListener("click", async () => {
+    const fn = SNIPPETS[btn.dataset.copy];
+    if (!fn) return;
+    try {
+      await navigator.clipboard.writeText(fn());
+      const old = btn.textContent;
+      btn.textContent = "ok";
+      setTimeout(() => { btn.textContent = old; }, 1200);
+    } catch (e) {}
+  });
+});
 
 // ── Gateway URL ──
 document.querySelectorAll(".gw").forEach(el => { el.textContent = API_BASE; });
