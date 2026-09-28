@@ -497,6 +497,41 @@ print(r.choices[0].message.content)</pre>
            data-en="Key dead on arrival through our fault — full refund. Spent tokens are non-refundable. Support lives in the FunPay order chat."></p>
       </details>
     </div>
+  <!-- ═══ ERRORS ═══ -->
+  <div class="term" style="margin-top:16px">
+    <h1><span class="prompt">root@tokenwave:~$</span> errors --help</h1>
+    <div class="sub"
+         data-ru="// баланс при 429/502 не списывается — можно просто повторить"
+         data-en="// no charge on 429/502 — just retry"></div>
+    <div class="scroll">
+      <table class="spend">
+        <thead><tr>
+          <th data-ru="Код" data-en="Code">Код</th>
+          <th data-ru="Что значит" data-en="Meaning">Что значит</th>
+          <th data-ru="Что делать" data-en="Fix">Что делать</th>
+        </tr></thead>
+        <tbody>
+          <tr><td>400</td>
+            <td data-ru="Нет такой модели" data-en="No such model">Нет такой модели</td>
+            <td><code>deepseek-v4-flash</code>, <code>minimax-m2.7</code>, <code>glm-5.3-flash</code></td></tr>
+          <tr><td>401</td>
+            <td data-ru="Неверный ключ" data-en="Bad key">Неверный ключ</td>
+            <td data-ru="Проверь Authorization: Bearer sk-..." data-en="Check Authorization: Bearer sk-...">Проверь Authorization: Bearer sk-...</td></tr>
+          <tr><td>402</td>
+            <td data-ru="Баланс пуст" data-en="Empty balance">Баланс пуст</td>
+            <td data-ru="Новый заказ = пополнение" data-en="New order = top-up">Новый заказ = пополнение</td></tr>
+          <tr><td>404</td>
+            <td data-ru="Не тот адрес" data-en="Wrong URL">Не тот адрес</td>
+            <td data-ru="OpenAI: Base URL с /v1. Anthropic: без /v1" data-en="OpenAI: Base URL with /v1. Anthropic: without /v1">OpenAI: Base URL с /v1. Anthropic: без /v1</td></tr>
+          <tr><td>429</td>
+            <td data-ru="Модель перегружена, повтори позже" data-en="Model busy, retry later">Модель перегружена, повтори позже</td>
+            <td data-ru="Подожди минуту / смени модель" data-en="Wait a minute / switch model">Подожди минуту / смени модель</td></tr>
+          <tr><td>502</td>
+            <td data-ru="Обрыв на стороне провайдера" data-en="Provider hiccup">Обрыв на стороне провайдера</td>
+            <td data-ru="Просто повтори запрос" data-en="Just retry">Просто повтори запрос</td></tr>
+        </tbody>
+      </table>
+    </div>
   </div>
 
 </div><!-- /wrap -->
