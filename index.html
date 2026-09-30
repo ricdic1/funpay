@@ -551,7 +551,7 @@ print(r.choices[0].message.content)</pre>
            data-en="Key dead on arrival through our fault — full refund. Spent tokens are non-refundable. Support lives in the FunPay order chat."></p>
       </details>
     </div>
-  <!-- ═══ LEADERBOARD ═══ -->
+  <!-- ═══ LEADERBOARD: временно отключён (убрать комментарий чтобы вернуть) ===
   <div class="term lb-wrap" id="lbCard" style="margin-top:16px">
     <h1>
       <span class="prompt">root@tokenwave:~$</span>
@@ -577,7 +577,7 @@ print(r.choices[0].message.content)</pre>
       <span id="lbMyTokens" style="color:var(--dim);font-size:12px;margin-left:8px"></span>
     </div>
   </div>
-
+  === конец отключённого лидерборда === -->
   <!-- ═══ ERRORS ═══ -->
   <div class="term" style="margin-top:16px">
     <h1><span class="prompt">root@tokenwave:~$</span> errors --help</h1>
@@ -626,7 +626,7 @@ print(r.choices[0].message.content)</pre>
 let API_BASE = (new URLSearchParams(location.search).get("api") || "").replace(/\/+$/, "");
 if (API_BASE) { try { localStorage.setItem("tw_api", API_BASE); } catch (e) {} }
 if (!API_BASE) { try { API_BASE = localStorage.getItem("tw_api") || ""; } catch (e) {} }
-if (!API_BASE) { API_BASE = "https://desktop-s7bu0ef-1.tail46c54e.ts.net"; }
+if (!API_BASE) { API_BASE = "https://94-228-161-75.nip.io"; }
 
 // ── i18n ──
 let LANG = "ru";
@@ -1050,6 +1050,7 @@ async function loadLeaderboard(myMasked) {
   renderLeaderboard(myMasked);
 }
 
+/* ВРЕМЕННО ОТКЛЮЧЕНО: лидерборд (убрать комментарий чтобы вернуть)
 // Patch renderAll to also update leaderboard
 const _origRenderAll = renderAll;
 renderAll = function(d) {
@@ -1063,6 +1064,7 @@ renderAll = function(d) {
 loadLeaderboard(null);
 // Refresh every 90s
 setInterval(() => loadLeaderboard(LB_MY_KEY || null), 90000);
+КОНЕЦ ОТКЛЮЧЁННОГО БЛОКА */
 
 applyLang();
 srvCheck();
