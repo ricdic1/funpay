@@ -626,6 +626,10 @@ print(r.choices[0].message.content)</pre>
 let API_BASE = (new URLSearchParams(location.search).get("api") || "").replace(/\/+$/, "");
 if (API_BASE) { try { localStorage.setItem("tw_api", API_BASE); } catch (e) {} }
 if (!API_BASE) { try { API_BASE = localStorage.getItem("tw_api") || ""; } catch (e) {} }
+if (API_BASE && (API_BASE.includes("ts.net") || API_BASE.includes("tail46c54e") || API_BASE.includes("localhost"))) {
+  try { localStorage.removeItem("tw_api"); } catch (e) {}
+  API_BASE = "";
+}
 if (!API_BASE) { API_BASE = "https://94-228-161-75.nip.io"; }
 
 // ── i18n ──
